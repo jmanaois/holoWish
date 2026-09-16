@@ -1,0 +1,12 @@
+{
+  "name": "holowish",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sync:cards": "node scripts/sync-cards.mjs",
+    "validate:catalog": "node scripts/validate-catalog.mjs",
+    "test": "node --test"
+  },
+  "engines": { "node": ">=20" }
+}

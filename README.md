@@ -32,6 +32,7 @@ The catalog sync also cross-references the official English card list by card nu
 - Dashboard-first navigation with large shortcuts to Wishlist, Collection, Search, and custom lists
 - Six persistent color themes inspired by SWG Hazakura Light, GMK Ishtar, SWG Lavender, GMK Tako, GMK Shoko, and GMK Abyssal, each with accessible light and dark palettes
 - Browse compact set tiles using official Japanese product/booster artwork, with Japanese or English names and live collection completion progress
+- Search within any set, sort in either direction by card number, name, rarity, type, or color, and filter using only values available in that set
 - Search Japanese and official English names, card numbers, tags, and sets
 - Filter by rarity, card type, color, bloom level, set, or parallel status
 - Wishlist and collection lists, plus custom lists

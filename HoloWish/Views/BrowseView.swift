@@ -246,11 +246,30 @@ private struct SetDetailView: View {
     @Environment(ThemeStore.self) private var themeStore
     @Environment(\.colorScheme) private var colorScheme
     @Query private var lists: [CardList]
+    @State private var searchText = ""
+    @State private var filters = CardFilters()
+    @State private var showingFilters = false
+    @State private var sortOrder = SetCardSort.cardNumber
+    @State private var sortAscending = true
     private let columns = [GridItem(.adaptive(minimum: 156), spacing: 16)]
 
+    private var allCards: [Card] { summary.cardIDs.compactMap { catalog.cardsByID[$0] } }
+    private var normalizedQuery: String {
+        searchText.trimmingCharacters(in: .whitespacesAndNewlines).localizedLowercase
+    }
+    private var filtersActive: Bool {
+        !filters.rarity.isEmpty || !filters.type.isEmpty || !filters.color.isEmpty ||
+        !filters.bloomLevel.isEmpty || filters.parallelsOnly
+    }
     private var cards: [Card] {
-        summary.cardIDs.compactMap { catalog.cardsByID[$0] }
-            .sorted { $0.number.localizedStandardCompare($1.number) == .orderedAscending }
+        allCards.filter { card in
+            (normalizedQuery.isEmpty || catalog.searchIndex[card.id, default: card.searchableText].contains(normalizedQuery)) &&
+            (filters.rarity.isEmpty || card.rarity == filters.rarity) &&
+            (filters.type.isEmpty || card.type == filters.type) &&
+            (filters.color.isEmpty || card.allColors.contains(filters.color)) &&
+            (filters.bloomLevel.isEmpty || card.bloomLevel == filters.bloomLevel) &&
+            (!filters.parallelsOnly || card.parallel)
+        }.sorted(by: cardSort)
     }
     private var collectionIDs: Set<Int> {
         Set(lists.first { $0.builtInKind == .collection }?.items.map(\.cardID) ?? [])
@@ -285,13 +304,34 @@ private struct SetDetailView: View {
                 }
                 .padding(.horizontal)
 
-                LazyVGrid(columns: columns, spacing: 24) {
-                    ForEach(cards) { card in
-                        NavigationLink { CardDetailView(card: card) } label: { CardTile(card: card) }
-                            .buttonStyle(.plain)
+                HStack {
+                    Text(filtersActive || !normalizedQuery.isEmpty ? "Showing \(cards.count) of \(allCards.count) cards" : "\(allCards.count) cards")
+                        .font(.subheadline.bold()).foregroundStyle(colors.primaryText)
+                    Spacer()
+                    if filtersActive || !normalizedQuery.isEmpty {
+                        Button("Clear") { searchText = ""; filters.clear() }
+                            .font(.caption.bold())
                     }
                 }
                 .padding(.horizontal)
+
+                if cards.isEmpty {
+                    ContentUnavailableView(
+                        "No matching cards",
+                        systemImage: "rectangle.stack.badge.magnifyingglass",
+                        description: Text("Try another name or clear the active filters.")
+                    )
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 36)
+                } else {
+                    LazyVGrid(columns: columns, spacing: 24) {
+                        ForEach(cards) { card in
+                            NavigationLink { CardDetailView(card: card) } label: { CardTile(card: card) }
+                                .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal)
+                }
             }
             .padding(.vertical)
         }
@@ -299,5 +339,89 @@ private struct SetDetailView: View {
         .tint(colors.accent)
         .navigationTitle(summary.displayName)
         .navigationBarTitleDisplayMode(.inline)
+        .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search this set")
+        .toolbar {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Menu {
+                    Picker("Sort by", selection: $sortOrder) {
+                        ForEach(SetCardSort.allCases) { option in
+                            Label(option.title, systemImage: option.systemImage).tag(option)
+                        }
+                    }
+                    Divider()
+                    Button {
+                        sortAscending.toggle()
+                    } label: {
+                        Label(sortAscending ? "Ascending" : "Descending", systemImage: sortAscending ? "arrow.up" : "arrow.down")
+                    }
+                } label: {
+                    Image(systemName: "arrow.up.arrow.down.circle")
+                }
+                .accessibilityLabel("Sort cards")
+
+                Button { showingFilters = true } label: {
+                    Image(systemName: filtersActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                }
+                .accessibilityLabel("Filter cards")
+            }
+        }
+        .sheet(isPresented: $showingFilters) {
+            FilterSheet(filters: $filters, availableCards: allCards, showsSetPicker: false)
+                .environment(catalog)
+        }
+    }
+
+    private func cardSort(_ lhs: Card, _ rhs: Card) -> Bool {
+        let comparison = sortOrder.compare(lhs, rhs)
+        if comparison == .orderedSame {
+            return lhs.number.localizedStandardCompare(rhs.number) == .orderedAscending
+        }
+        return sortAscending ? comparison == .orderedAscending : comparison == .orderedDescending
+    }
+}
+
+private enum SetCardSort: String, CaseIterable, Identifiable {
+    case cardNumber
+    case name
+    case rarity
+    case cardType
+    case color
+
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .cardNumber: "Card Number"
+        case .name: "Name"
+        case .rarity: "Rarity"
+        case .cardType: "Card Type"
+        case .color: "Color"
+        }
+    }
+    var systemImage: String {
+        switch self {
+        case .cardNumber: "number"
+        case .name: "textformat"
+        case .rarity: "sparkles"
+        case .cardType: "rectangle.stack"
+        case .color: "paintpalette"
+        }
+    }
+
+    func compare(_ lhs: Card, _ rhs: Card) -> ComparisonResult {
+        let left: String
+        let right: String
+        switch self {
+        case .cardNumber:
+            left = lhs.number; right = rhs.number
+        case .name:
+            left = lhs.displayEnglishName ?? lhs.name; right = rhs.displayEnglishName ?? rhs.name
+        case .rarity:
+            left = lhs.rarity; right = rhs.rarity
+        case .cardType:
+            left = lhs.type; right = rhs.type
+        case .color:
+            left = lhs.color; right = rhs.color
+        }
+        return left.localizedStandardCompare(right)
     }
 }

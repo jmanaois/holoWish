@@ -416,6 +416,11 @@ private enum SetCardSort: String, CaseIterable, Identifiable {
         case .name:
             left = lhs.displayEnglishName ?? lhs.name; right = rhs.displayEnglishName ?? rhs.name
         case .rarity:
+            let leftPriority = Self.rarityPriority(lhs.rarity)
+            let rightPriority = Self.rarityPriority(rhs.rarity)
+            if leftPriority != rightPriority {
+                return leftPriority < rightPriority ? .orderedAscending : .orderedDescending
+            }
             left = lhs.rarity; right = rhs.rarity
         case .cardType:
             left = lhs.type; right = rhs.type
@@ -423,5 +428,16 @@ private enum SetCardSort: String, CaseIterable, Identifiable {
             left = lhs.color; right = rhs.color
         }
         return left.localizedStandardCompare(right)
+    }
+
+    private static func rarityPriority(_ rarity: String) -> Int {
+        switch rarity.uppercased() {
+        case "SEC": 0
+        case "OUR": 1
+        case "UR": 2
+        case "OSR": 3
+        case "SR": 4
+        default: 5
+        }
     }
 }

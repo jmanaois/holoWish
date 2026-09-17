@@ -182,6 +182,7 @@ struct SettingsView: View {
                     .padding(.vertical, 4)
                 }
             }
+            .id(themeStore.selected)
             .scrollContentBackground(.hidden)
             .background(colors.background)
             .navigationTitle("Settings")

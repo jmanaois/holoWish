@@ -51,9 +51,13 @@ struct ThemePickerView: View {
             .background(active.background)
             .navigationTitle("Themes")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(active.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .tint(active.accent)
         }
+        .background(active.background)
+        .presentationBackground(active.background)
     }
 
     private func swatch(_ color: Color) -> some View {
@@ -187,6 +191,8 @@ struct SettingsView: View {
             .background(colors.background)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(colors.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }.fontWeight(.semibold)
@@ -203,6 +209,8 @@ struct SettingsView: View {
                 Text("Card and product images can be downloaded again later.")
             }
         }
+        .background(colors.background)
+        .presentationBackground(colors.background)
     }
 
     private var catalogSyncDescription: String {

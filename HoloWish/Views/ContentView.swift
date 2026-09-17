@@ -10,7 +10,7 @@ struct ContentView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            DashboardView(openSearch: { selectedTab = .search }, openLists: { selectedTab = .lists })
+            DashboardView()
                 .tabItem { Label("Home", systemImage: "house.fill") }
                 .tag(AppTab.home)
             BrowseView()

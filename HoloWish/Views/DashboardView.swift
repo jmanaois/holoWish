@@ -3,8 +3,6 @@ import SwiftData
 import SwiftUI
 
 struct DashboardView: View {
-    let openSearch: () -> Void
-    let openLists: () -> Void
     @Environment(CardCatalog.self) private var catalog
     @Environment(ThemeStore.self) private var themeStore
     @Environment(\.colorScheme) private var colorScheme
@@ -14,7 +12,6 @@ struct DashboardView: View {
 
     private var wishlist: CardList? { lists.first { $0.builtInKind == .wishlist } }
     private var collection: CardList? { lists.first { $0.builtInKind == .collection } }
-    private var collectionIDs: Set<Int> { Set(collection?.items.map(\.cardID) ?? []) }
     private var collectionQuantity: Int { collection?.items.reduce(0) { $0 + $1.quantity } ?? 0 }
     private var collectionSnapshots: [CollectionValueSnapshot] {
         guard let collection else { return [] }
@@ -27,15 +24,16 @@ struct DashboardView: View {
             .prefix(6)
             .compactMap { catalog.cardsByID[$0.cardID] }
     }
-    private var closestSet: CardSetSummary? {
-        catalog.setSummaries
-            .filter { summary in
-                let owned = summary.cardIDs.reduce(0) { $0 + (collectionIDs.contains($1) ? 1 : 0) }
-                return owned > 0 && owned < summary.cardIDs.count
+    private var mostValuableCards: [ValuableCard] {
+        guard let collection else { return [] }
+        return collection.items
+            .compactMap { item -> ValuableCard? in
+                guard item.purchasePrice != nil, let card = catalog.cardsByID[item.cardID] else { return nil }
+                return ValuableCard(item: item, card: card)
             }
-            .max { lhs, rhs in
-                setProgress(lhs) < setProgress(rhs)
-            }
+            .sorted { ($0.item.purchasePrice ?? 0) > ($1.item.purchasePrice ?? 0) }
+            .prefix(4)
+            .map { $0 }
     }
 
     var body: some View {
@@ -44,10 +42,21 @@ struct DashboardView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     VStack(alignment: .leading, spacing: 5) {
-                        Text("Your holoWish")
+                        Text("holoWish")
                             .font(.largeTitle.bold()).foregroundStyle(colors.primaryText)
-                        Text("Your collection, wishlist, and Japanese holoCards at a glance.")
+                        Text("your hololive ocg wishlist and collection at a glance")
                             .foregroundStyle(colors.secondaryText)
+                    }
+
+                    if let collection {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Collection")
+                                .font(.title2.bold())
+                                .foregroundStyle(colors.primaryText)
+
+                            CollectionValueCard(list: collection, snapshots: collectionSnapshots)
+                            MostValuableCardsView(entries: mostValuableCards)
+                        }
                     }
 
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
@@ -61,34 +70,8 @@ struct DashboardView: View {
                                 DashboardButton(title: "Collection", subtitle: "\(collectionQuantity) cards", icon: "square.stack.3d.up.fill", color: colors.secondaryAccent)
                             }
                         }
-                        Button(action: openSearch) {
-                            DashboardButton(title: "Search", subtitle: "Cards & sets", icon: "magnifyingglass", color: colors.accent)
-                        }
-                        Button(action: openLists) {
-                            DashboardButton(title: "My Lists", subtitle: "\(max(0, lists.count - 2)) custom", icon: "list.bullet.rectangle.fill", color: colors.secondaryAccent)
-                        }
                     }
                     .buttonStyle(.plain)
-
-                    if let collection {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Collection Insights")
-                                .font(.title2.bold())
-                                .foregroundStyle(colors.primaryText)
-
-                            CollectionValueCard(list: collection, snapshots: collectionSnapshots)
-
-                            if let closestSet {
-                                NavigationLink { SetDetailView(summary: closestSet) } label: {
-                                    ClosestSetCard(
-                                        summary: closestSet,
-                                        ownedCount: closestSet.cardIDs.reduce(0) { $0 + (collectionIDs.contains($1) ? 1 : 0) }
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    }
 
                     if !recentCards.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
@@ -132,11 +115,12 @@ struct DashboardView: View {
         }
     }
 
-    private func setProgress(_ summary: CardSetSummary) -> Double {
-        guard !summary.cardIDs.isEmpty else { return 0 }
-        let owned = summary.cardIDs.reduce(0) { $0 + (collectionIDs.contains($1) ? 1 : 0) }
-        return Double(owned) / Double(summary.cardIDs.count)
-    }
+}
+
+private struct ValuableCard: Identifiable {
+    let item: CardListItem
+    let card: Card
+    var id: UUID { item.id }
 }
 
 private struct DashboardButton: View {
@@ -167,17 +151,41 @@ private struct CollectionValueCard: View {
     let snapshots: [CollectionValueSnapshot]
     @Environment(ThemeStore.self) private var themeStore
     @Environment(\.colorScheme) private var colorScheme
+    @State private var selectedRange = CollectionChartRange.oneMonth
 
-    private var recentSnapshots: [CollectionValueSnapshot] { Array(snapshots.suffix(20)) }
-    private var movement: Decimal {
-        guard snapshots.count > 1, let last = snapshots.last else { return 0 }
-        return last.totalValue - snapshots[snapshots.count - 2].totalValue
+    private var chartPoints: [CollectionValuePoint] {
+        let now = Date.now
+        let start = selectedRange.startDate(relativeTo: now)
+        let sorted = snapshots.sorted { $0.recordedAt < $1.recordedAt }
+        let baseline = sorted.last { $0.recordedAt < start }
+        var points: [CollectionValuePoint] = []
+
+        if let baseline {
+            points.append(CollectionValuePoint(date: start, value: baseline.chartValue))
+        }
+        points.append(contentsOf: sorted.filter { $0.recordedAt >= start && $0.recordedAt <= now }.map {
+            CollectionValuePoint(date: $0.recordedAt, value: $0.chartValue)
+        })
+
+        let currentValue = NSDecimalNumber(decimal: list.totalPaidYen).doubleValue
+        if points.isEmpty {
+            points.append(CollectionValuePoint(date: start, value: currentValue))
+        }
+        if points.last?.date != now {
+            points.append(CollectionValuePoint(date: now, value: currentValue))
+        }
+        return points
+    }
+    private var movement: Double {
+        guard let first = chartPoints.first, let last = chartPoints.last else { return 0 }
+        return last.value - first.value
     }
 
     var body: some View {
         let colors = themeStore.colors(for: colorScheme)
-        HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 5) {
                 Label("Tracked purchase value", systemImage: "yensign.circle.fill")
                     .font(.caption.bold())
                     .foregroundStyle(colors.secondaryText)
@@ -192,80 +200,151 @@ private struct CollectionValueCard: View {
                     .font(.caption.bold().monospacedDigit())
                     .foregroundStyle(movement > 0 ? colors.secondaryAccent : colors.secondaryText)
                 } else {
-                    Text("Add purchase prices to track movement")
+                    Text("No change in the selected range")
                         .font(.caption)
                         .foregroundStyle(colors.secondaryText)
                 }
+                }
+                Spacer()
+                Text(selectedRange.rawValue)
+                    .font(.caption.bold())
+                    .foregroundStyle(colors.secondaryText)
             }
-            Spacer(minLength: 4)
-            if recentSnapshots.count > 1 {
-                Chart(recentSnapshots) { snapshot in
+
+            Chart(chartPoints) { point in
+                    AreaMark(
+                        x: .value("Date", point.date),
+                        y: .value("Value", point.value)
+                    )
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [colors.accent.opacity(0.25), colors.accent.opacity(0.02)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
                     LineMark(
-                        x: .value("Date", snapshot.recordedAt),
-                        y: .value("Value", snapshot.chartValue)
+                        x: .value("Date", point.date),
+                        y: .value("Value", point.value)
                     )
                     .foregroundStyle(colors.accent)
                     .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
-                    AreaMark(
-                        x: .value("Date", snapshot.recordedAt),
-                        y: .value("Value", snapshot.chartValue)
-                    )
-                    .foregroundStyle(colors.accent.opacity(0.12))
-                }
-                .chartXAxis(.hidden)
-                .chartYAxis(.hidden)
-                .frame(width: 110, height: 70)
-            } else {
-                Image(systemName: "chart.line.uptrend.xyaxis")
-                    .font(.largeTitle)
-                    .foregroundStyle(colors.accent.opacity(0.7))
-                    .frame(width: 90)
             }
+            .chartXAxis {
+                AxisMarks(values: .automatic(desiredCount: 2)) {
+                    AxisGridLine().foregroundStyle(colors.secondaryText.opacity(0.1))
+                    AxisValueLabel(format: selectedRange == .oneDay ? .dateTime.hour() : .dateTime.month(.abbreviated).day())
+                        .foregroundStyle(colors.secondaryText)
+                }
+            }
+            .chartYAxis {
+                AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) {
+                    AxisGridLine().foregroundStyle(colors.secondaryText.opacity(0.1))
+                    AxisValueLabel().foregroundStyle(colors.secondaryText)
+                }
+            }
+            .frame(height: 175)
+
+            Picker("History range", selection: $selectedRange) {
+                ForEach(CollectionChartRange.allCases) { range in
+                    Text(range.rawValue).tag(range)
+                }
+            }
+            .pickerStyle(.segmented)
+            .accessibilityLabel("Collection value history range")
         }
         .padding(18)
         .background(colors.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
 
-private struct ClosestSetCard: View {
-    let summary: CardSetSummary
-    let ownedCount: Int
-    @Environment(ThemeStore.self) private var themeStore
-    @Environment(\.colorScheme) private var colorScheme
+private enum CollectionChartRange: String, CaseIterable, Identifiable {
+    case oneDay = "1D"
+    case sevenDays = "7D"
+    case oneMonth = "1M"
+    case threeMonths = "3M"
+    case sixMonths = "6M"
+    case yearToDate = "YTD"
 
-    private var progress: Double {
-        summary.cardIDs.isEmpty ? 0 : Double(ownedCount) / Double(summary.cardIDs.count)
+    var id: String { rawValue }
+
+    func startDate(relativeTo date: Date) -> Date {
+        let calendar = Calendar.current
+        return switch self {
+        case .oneDay: calendar.date(byAdding: .day, value: -1, to: date) ?? date
+        case .sevenDays: calendar.date(byAdding: .day, value: -7, to: date) ?? date
+        case .oneMonth: calendar.date(byAdding: .month, value: -1, to: date) ?? date
+        case .threeMonths: calendar.date(byAdding: .month, value: -3, to: date) ?? date
+        case .sixMonths: calendar.date(byAdding: .month, value: -6, to: date) ?? date
+        case .yearToDate: calendar.dateInterval(of: .year, for: date)?.start ?? date
+        }
     }
+}
+
+private struct CollectionValuePoint: Identifiable {
+    let date: Date
+    let value: Double
+    var id: Date { date }
+}
+
+private struct MostValuableCardsView: View {
+    let entries: [ValuableCard]
+    @Environment(ThemeStore.self) private var themeStore
+    @Environment(AppSettings.self) private var appSettings
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         let colors = themeStore.colors(for: colorScheme)
-        HStack(spacing: 14) {
-            CachedSetImage(set: summary, contentMode: .fit)
-                .frame(width: 104, height: 70)
-                .background(colors.background.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
-            VStack(alignment: .leading, spacing: 7) {
-                Text("CLOSEST TO COMPLETION")
-                    .font(.caption2.bold())
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Most Valuable")
+                .font(.headline)
+                .foregroundStyle(colors.primaryText)
+
+            if entries.isEmpty {
+                Label("Add purchase prices to see your top cards.", systemImage: "tag")
+                    .font(.subheadline)
                     .foregroundStyle(colors.secondaryText)
-                Text(summary.displayName)
-                    .font(.headline)
-                    .foregroundStyle(colors.primaryText)
-                    .lineLimit(1)
-                ProgressView(value: progress).tint(colors.accent)
-                HStack {
-                    Text("\(ownedCount) / \(summary.cardIDs.count)")
-                    Spacer()
-                    Text(progress.formatted(.percent.precision(.fractionLength(0))))
+                    .padding(.vertical, 8)
+            } else {
+                ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
+                    NavigationLink { CardDetailView(card: entry.card) } label: {
+                        HStack(spacing: 12) {
+                            Text((index + 1).formatted())
+                                .font(.caption.bold().monospacedDigit())
+                                .foregroundStyle(colors.secondaryText)
+                                .frame(width: 18)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(entry.card.primaryName(for: appSettings.cardNamePreference))
+                                    .font(.subheadline.bold())
+                                    .foregroundStyle(colors.primaryText)
+                                    .lineLimit(1)
+                                Text(setName(for: entry.card))
+                                    .font(.caption)
+                                    .foregroundStyle(colors.secondaryText)
+                                    .lineLimit(1)
+                            }
+                            Spacer()
+                            Text((entry.item.purchasePrice ?? 0).formatted(.currency(code: "JPY")))
+                                .font(.subheadline.bold().monospacedDigit())
+                                .foregroundStyle(colors.primaryText)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    if index < entries.count - 1 { Divider() }
                 }
-                .font(.caption.bold().monospacedDigit())
-                .foregroundStyle(colors.secondaryText)
             }
-            Image(systemName: "chevron.right")
-                .font(.caption.bold())
-                .foregroundStyle(colors.secondaryText)
         }
         .padding(16)
         .background(colors.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+
+    private func setName(for card: Card) -> String {
+        if appSettings.cardNamePreference == .englishFirst,
+           let englishSet = card.allEnglishSets.first,
+           !englishSet.isEmpty {
+            return englishSet
+        }
+        return card.allSets.first ?? "Unknown set"
     }
 }
 

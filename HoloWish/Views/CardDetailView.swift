@@ -260,11 +260,12 @@ struct CardDetailView: View {
 
         return Button { toggle(cardIn: list, item: item) } label: {
             Label(title, systemImage: isAdded ? "checkmark" : "plus")
-                .font(.subheadline.bold())
-                .lineLimit(2)
-                .minimumScaleFactor(0.8)
+                .font(.footnote.bold())
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+                .allowsTightening(true)
                 .frame(maxWidth: .infinity, minHeight: 48)
-                .padding(.horizontal, 8)
+                .padding(.horizontal, 4)
                 .foregroundStyle(isAdded ? colors.background : color)
                 .background(isAdded ? color : colors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay {

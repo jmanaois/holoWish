@@ -3,6 +3,17 @@ import SwiftUI
 
 @main
 struct HoloWishApp: App {
+    private let modelContainer: ModelContainer = {
+        let schema = Schema([CardList.self, CardListItem.self, CollectionValueSnapshot.self])
+        let configuration = ModelConfiguration(schema: schema, cloudKitDatabase: .none)
+
+        do {
+            return try ModelContainer(for: schema, configurations: configuration)
+        } catch {
+            fatalError("Unable to create the local model container: \(error)")
+        }
+    }()
+
     @State private var catalog = CardCatalog()
     @State private var artwork = CardArtworkStore()
     @State private var prices = CardPriceStore()
@@ -29,6 +40,6 @@ struct HoloWishApp: App {
                     }
                 }
         }
-        .modelContainer(for: [CardList.self, CardListItem.self], configurations: ModelConfiguration(cloudKitDatabase: .none))
+        .modelContainer(modelContainer)
     }
 }

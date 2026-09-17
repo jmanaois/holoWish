@@ -190,7 +190,34 @@ struct CardSetSummary: Identifiable, Hashable, Sendable {
     let category: String?
     let sortOrder: Int
     var id: String { name }
-    var displayName: String { englishName?.isEmpty == false ? englishName! : name }
+    var displayName: String {
+        let original = englishName?.isEmpty == false ? englishName! : name
+        let cleaned: String
+        switch group {
+        case .boosters:
+            cleaned = original.replacingOccurrences(
+                of: #"(?i)^\s*(?:extra\s+)?booster(?:\s+pack)?\s*[–—-]?\s*"#,
+                with: "",
+                options: .regularExpression
+            )
+        case .decks:
+            cleaned = original
+                .replacingOccurrences(
+                    of: #"(?i)^\s*event\s+exclusive\s+(?:live\s+)?start\s+deck\s+set\s*[–—-]?\s*"#,
+                    with: "Event Exclusive – ",
+                    options: .regularExpression
+                )
+                .replacingOccurrences(
+                    of: #"(?i)^\s*(?:live\s+)?start\s+deck(?:\s+set)?\s*[–—-]?\s*"#,
+                    with: "",
+                    options: .regularExpression
+                )
+        default:
+            cleaned = original
+        }
+        let trimmed = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? original : trimmed
+    }
     var group: CardSetGroup { CardSetGroup(category: category) }
 
     var searchableText: String {

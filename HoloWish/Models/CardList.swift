@@ -60,3 +60,36 @@ final class CardListItem {
         self.list = list
     }
 }
+
+@Model
+final class CollectionValueSnapshot {
+    var id: UUID
+    var listID: UUID
+    var recordedAt: Date
+    var totalValueText: String
+
+    var totalValue: Decimal {
+        Decimal(string: totalValueText, locale: Locale(identifier: "en_US_POSIX")) ?? 0
+    }
+
+    var chartValue: Double {
+        NSDecimalNumber(decimal: totalValue).doubleValue
+    }
+
+    init(listID: UUID, totalValue: Decimal, recordedAt: Date = .now) {
+        id = UUID()
+        self.listID = listID
+        self.recordedAt = recordedAt
+        totalValueText = NSDecimalNumber(decimal: totalValue).stringValue
+    }
+}
+
+extension CardList {
+    @discardableResult
+    func recordValue(_ value: Decimal? = nil, at date: Date = .now, in context: ModelContext) -> CollectionValueSnapshot? {
+        guard tracksPurchases else { return nil }
+        let snapshot = CollectionValueSnapshot(listID: id, totalValue: value ?? totalPaidYen, recordedAt: date)
+        context.insert(snapshot)
+        return snapshot
+    }
+}

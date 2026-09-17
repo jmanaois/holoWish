@@ -11,8 +11,8 @@ struct BrowseView: View {
     @State private var showingFilters = false
     @State private var visibleLimit = 40
 
-    private let columns = [GridItem(.adaptive(minimum: 156), spacing: 16)]
-    private let setColumns = [GridItem(.adaptive(minimum: 108, maximum: 180), spacing: 8)]
+    private let columns = CardGridLayout.columns
+    private let setColumns = [GridItem(.adaptive(minimum: 108, maximum: 156), spacing: 8, alignment: .top)]
 
     private var collectionIDs: Set<Int> {
         Set(lists.first { $0.builtInKind == .collection }?.items.map(\.cardID) ?? [])
@@ -218,10 +218,11 @@ private struct SetTile: View {
     var body: some View {
         let colors = themeStore.colors(for: colorScheme)
         VStack(alignment: .leading, spacing: 0) {
-            CachedSetImage(set: summary)
-                .aspectRatio(506 / 314, contentMode: .fill)
+            CachedSetImage(set: summary, contentMode: .fit)
                 .frame(maxWidth: .infinity)
-                .clipped()
+                .aspectRatio(506 / 314, contentMode: .fit)
+                .padding(6)
+                .background(colors.background.opacity(0.55))
             VStack(alignment: .leading, spacing: 5) {
                 Text(summary.displayName)
                     .font(.caption2.bold())
@@ -251,7 +252,7 @@ private struct SetDetailView: View {
     @State private var showingFilters = false
     @State private var sortOrder = SetCardSort.cardNumber
     @State private var sortAscending = true
-    private let columns = [GridItem(.adaptive(minimum: 156), spacing: 16)]
+    private let columns = CardGridLayout.columns
 
     private var allCards: [Card] { summary.cardIDs.compactMap { catalog.cardsByID[$0] } }
     private var normalizedQuery: String {
@@ -281,9 +282,11 @@ private struct SetDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 if summary.productImage != nil {
-                    CachedSetImage(set: summary)
-                        .aspectRatio(506 / 314, contentMode: .fit)
+                    CachedSetImage(set: summary, contentMode: .fit)
                         .frame(maxWidth: 420)
+                        .aspectRatio(506 / 314, contentMode: .fit)
+                        .padding(10)
+                        .background(colors.surface)
                         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         .frame(maxWidth: .infinity)
                         .padding(.horizontal)
@@ -293,7 +296,7 @@ private struct SetDetailView: View {
                         .font(.caption.bold())
                         .foregroundStyle(colors.accent)
                     if let englishName = summary.englishName, !englishName.isEmpty {
-                        Text(englishName).font(.title2.bold()).foregroundStyle(colors.primaryText)
+                        Text(summary.displayName).font(.title2.bold()).foregroundStyle(colors.primaryText)
                         Text(summary.name).font(.subheadline).foregroundStyle(colors.secondaryText)
                     } else {
                         Text(summary.name).font(.title2.bold()).foregroundStyle(colors.primaryText)

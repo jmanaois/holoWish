@@ -1,5 +1,11 @@
 import SwiftUI
 
+enum CardGridLayout {
+    static let columns = [
+        GridItem(.adaptive(minimum: 150, maximum: 180), spacing: 16, alignment: .top)
+    ]
+}
+
 struct CardTile: View {
     let card: Card
     @Environment(ThemeStore.self) private var themeStore
@@ -33,15 +39,26 @@ struct CardTile: View {
             }
             .font(.caption2.weight(.medium))
             .foregroundStyle(colors.secondaryText)
+            .frame(height: 15)
 
             Text(card.name)
                 .font(.subheadline.bold())
                 .foregroundStyle(colors.primaryText)
                 .lineLimit(1)
-            if let englishName = card.displayEnglishName, englishName != card.name {
-                Text(englishName).font(.caption).foregroundStyle(colors.secondaryText).lineLimit(1)
-            }
+                .frame(height: 19, alignment: .leading)
+            Text(englishSubtitle)
+                .font(.caption)
+                .foregroundStyle(colors.secondaryText)
+                .lineLimit(1)
+                .opacity(englishSubtitle.isEmpty ? 0 : 1)
+                .frame(height: 16, alignment: .leading)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
+    }
+
+    private var englishSubtitle: String {
+        guard let englishName = card.displayEnglishName, englishName != card.name else { return "" }
+        return englishName
     }
 }

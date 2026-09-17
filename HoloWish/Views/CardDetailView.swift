@@ -174,10 +174,10 @@ struct CardDetailView: View {
                 }
                 Spacer()
                 if list.tracksPurchases, let item {
-                    Button { item.quantity = max(1, item.quantity - 1) } label: { Image(systemName: "minus.circle") }
+                    Button { changeQuantity(of: item, in: list, by: -1) } label: { Image(systemName: "minus.circle") }
                         .accessibilityLabel("Decrease quantity")
                     Text("\(item.quantity)").monospacedDigit().frame(minWidth: 22)
-                    Button { item.quantity += 1 } label: { Image(systemName: "plus.circle") }
+                    Button { changeQuantity(of: item, in: list, by: 1) } label: { Image(systemName: "plus.circle") }
                         .accessibilityLabel("Increase quantity")
                 }
             }
@@ -198,9 +198,24 @@ struct CardDetailView: View {
     }
 
     private func toggle(cardIn list: CardList, item: CardListItem?) {
-        if let item { modelContext.delete(item) }
+        if let item {
+            let removedValue = (item.purchasePrice ?? 0) * Decimal(item.quantity)
+            let newValue = max(Decimal.zero, list.totalPaidYen - removedValue)
+            list.items.removeAll { $0.id == item.id }
+            modelContext.delete(item)
+            list.recordValue(newValue, in: modelContext)
+            try? modelContext.save()
+        }
         else if list.tracksPurchases { purchaseList = list }
         else { list.items.append(CardListItem(cardID: card.id)) }
+    }
+
+    private func changeQuantity(of item: CardListItem, in list: CardList, by change: Int) {
+        let newQuantity = max(1, item.quantity + change)
+        guard newQuantity != item.quantity else { return }
+        item.quantity = newQuantity
+        list.recordValue(in: modelContext)
+        try? modelContext.save()
     }
 }
 
@@ -268,10 +283,12 @@ struct PurchaseEditorView: View {
         if existing == nil { list.items.append(target) }
         target.quantity = quantity
         target.purchasePriceText = parsedAmount.map { NSDecimalNumber(decimal: $0).stringValue }
+        let snapshot = list.recordValue(in: modelContext)
         do {
             try modelContext.save()
             dismiss()
         } catch {
+            if let snapshot { modelContext.delete(snapshot) }
             if existing == nil {
                 list.items.removeAll { $0.id == target.id }
                 modelContext.delete(target)

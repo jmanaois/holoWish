@@ -27,6 +27,7 @@ struct CachedCardImage: View {
 
 struct CachedSetImage: View {
     let set: CardSetSummary
+    var contentMode: ContentMode = .fit
     @Environment(CardArtworkStore.self) private var artwork
     @Environment(ThemeStore.self) private var themeStore
     @Environment(\.colorScheme) private var colorScheme
@@ -36,7 +37,7 @@ struct CachedSetImage: View {
         let colors = themeStore.colors(for: colorScheme)
         Group {
             if let image {
-                Image(uiImage: image).resizable().scaledToFill()
+                Image(uiImage: image).resizable().aspectRatio(contentMode: contentMode)
             } else {
                 ZStack {
                     colors.surface

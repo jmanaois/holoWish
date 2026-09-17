@@ -25,6 +25,7 @@
 		A00100000000000000000011 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00100000000000000000011 /* AppTheme.swift */; };
 		A00100000000000000000012 /* ThemePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00100000000000000000012 /* ThemePickerView.swift */; };
 		A00100000000000000000013 /* CardPriceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00100000000000000000013 /* CardPriceStore.swift */; };
+		A00100000000000000000015 /* TalentPortraits in Resources */ = {isa = PBXBuildFile; fileRef = B00100000000000000000015 /* TalentPortraits */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -48,6 +49,7 @@
 		B00100000000000000000012 /* ThemePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemePickerView.swift; sourceTree = "<group>"; };
 		B00100000000000000000013 /* CardPriceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardPriceStore.swift; sourceTree = "<group>"; };
 		B00100000000000000000014 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B00100000000000000000015 /* TalentPortraits */ = {isa = PBXFileReference; lastKnownFileType = folder; path = TalentPortraits; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -78,6 +80,7 @@
 				D00100000000000000000004 /* Services */,
 				D00100000000000000000005 /* Views */,
 				D00100000000000000000006 /* Resources */,
+				B00100000000000000000015 /* TalentPortraits */,
 				B0010000000000000000000C /* Assets.xcassets */,
 			);
 			path = HoloWish;
@@ -195,6 +198,7 @@
 			files = (
 				A0010000000000000000000B /* cards.json in Resources */,
 				A0010000000000000000000C /* Assets.xcassets in Resources */,
+				A00100000000000000000015 /* TalentPortraits in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1,49 +1,42 @@
 import SwiftUI
+import UIKit
 
 struct ThemePickerView: View {
     @Environment(ThemeStore.self) private var themeStore
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
 
     var body: some View {
         let active = themeStore.colors(for: colorScheme)
         NavigationStack {
             ScrollView {
-                LazyVStack(spacing: 12) {
-                    Text("Each palette includes coordinated colors for both light and dark appearance.")
-                        .font(.subheadline)
-                        .foregroundStyle(active.secondaryText)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.bottom, 4)
-                    ForEach(AppTheme.allCases) { theme in
-                        let colors = theme.colors(for: colorScheme)
-                        Button {
-                            themeStore.selected = theme
-                        } label: {
-                            HStack(spacing: 14) {
-                                HStack(spacing: -8) {
-                                    swatch(colors.accent)
-                                    swatch(colors.secondaryAccent)
-                                    swatch(colors.surface)
+                LazyVStack(alignment: .leading, spacing: 12, pinnedViews: [.sectionHeaders]) {
+                    if searchText.isEmpty {
+                        Text("Choose a talent portrait and a coordinated palette for light and dark appearance.")
+                            .font(.subheadline)
+                            .foregroundStyle(active.secondaryText)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.bottom, 4)
+                    }
+
+                    ForEach(AppThemeCategory.allCases) { category in
+                        let themes = AppTheme.cases(in: category, matching: searchText)
+                        if !themes.isEmpty {
+                            Section {
+                                ForEach(themes) { theme in
+                                    themeButton(theme, active: active)
                                 }
-                                .accessibilityHidden(true)
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(theme.rawValue).font(.headline).foregroundStyle(active.primaryText)
-                                    Text(theme.paletteDescription)
-                                        .font(.caption).foregroundStyle(active.secondaryText)
-                                }
-                                Spacer()
-                                if theme == themeStore.selected {
-                                    Image(systemName: "checkmark.circle.fill").foregroundStyle(active.accent).font(.title3)
-                                }
+                            } header: {
+                                Text(category.rawValue)
+                                    .font(.caption.bold())
+                                    .textCase(.uppercase)
+                                    .foregroundStyle(active.secondaryText)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.vertical, 8)
+                                    .background(active.background)
                             }
-                            .padding(14)
-                            .background(active.surface, in: RoundedRectangle(cornerRadius: 17, style: .continuous))
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(theme.rawValue)
-                        .accessibilityValue(theme == themeStore.selected ? "Selected" : "")
-                        .accessibilityAddTraits(theme == themeStore.selected ? [.isSelected] : [])
                     }
                 }
                 .padding()
@@ -51,6 +44,7 @@ struct ThemePickerView: View {
             .background(active.background)
             .navigationTitle("Themes")
             .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $searchText, prompt: "Search talents")
             .toolbarBackground(active.background, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
@@ -60,9 +54,97 @@ struct ThemePickerView: View {
         .presentationBackground(active.background)
     }
 
+    private func themeButton(_ theme: AppTheme, active: ThemeColors) -> some View {
+        let colors = theme.colors(for: colorScheme)
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                themeStore.selected = theme
+            }
+        } label: {
+            HStack(spacing: 13) {
+                TalentPortrait(theme: theme)
+                    .frame(width: 62, height: 62)
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(theme.rawValue)
+                        .font(.headline)
+                        .foregroundStyle(active.primaryText)
+                        .lineLimit(2)
+                    HStack(spacing: 6) {
+                        Text(theme.japaneseName)
+                        if let status = theme.status {
+                            Text(status.label.uppercased())
+                                .font(.caption2.bold())
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(active.background, in: Capsule())
+                        }
+                    }
+                    .font(.caption)
+                    .foregroundStyle(active.secondaryText)
+                }
+
+                Spacer(minLength: 4)
+
+                HStack(spacing: -5) {
+                    swatch(colors.accent)
+                    swatch(colors.secondaryAccent)
+                }
+                .accessibilityHidden(true)
+
+                Image(systemName: theme == themeStore.selected ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(theme == themeStore.selected ? active.accent : active.secondaryText.opacity(0.45))
+                    .font(.title3)
+            }
+            .padding(11)
+            .background(active.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay {
+                if theme == themeStore.selected {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(active.accent.opacity(0.55), lineWidth: 1.5)
+                }
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(theme.rawValue), \(theme.japaneseName)")
+        .accessibilityValue(theme == themeStore.selected ? "Selected" : "")
+        .accessibilityAddTraits(theme == themeStore.selected ? [.isSelected] : [])
+    }
+
     private func swatch(_ color: Color) -> some View {
-        Circle().fill(color).frame(width: 34, height: 34)
+        Circle().fill(color).frame(width: 25, height: 25)
             .overlay(Circle().stroke(themeStore.colors(for: colorScheme).primaryText.opacity(0.25), lineWidth: 1))
+    }
+}
+
+private struct TalentPortrait: View {
+    let theme: AppTheme
+
+    var body: some View {
+        Group {
+            if let url = Bundle.main.url(
+                forResource: theme.portraitFileName,
+                withExtension: nil,
+                subdirectory: "TalentPortraits"
+            ), let image = UIImage(contentsOfFile: url.path) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Image(systemName: "person.crop.square.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .padding(12)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 15, style: .continuous)
+                .stroke(.white.opacity(0.22), lineWidth: 1)
+        }
     }
 }
 
@@ -72,7 +154,6 @@ struct SettingsView: View {
     @Environment(CardCatalog.self) private var catalog
     @Environment(CardArtworkStore.self) private var artwork
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.deviceColorScheme) private var deviceColorScheme
     @Environment(\.dismiss) private var dismiss
     @State private var showingThemes = false
     @State private var showingClearArtworkConfirmation = false
@@ -223,7 +304,7 @@ struct SettingsView: View {
         }
         .background(colors.background)
         .presentationBackground(colors.background)
-        .preferredColorScheme(appSettings.appearance.resolvedColorScheme(system: deviceColorScheme))
+        .preferredColorScheme(appSettings.appearance.colorScheme)
     }
 
     private var catalogSyncDescription: String {

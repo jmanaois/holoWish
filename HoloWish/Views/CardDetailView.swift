@@ -8,6 +8,7 @@ struct CardDetailView: View {
     @Environment(CardPriceStore.self) private var prices
     @Environment(\.colorScheme) private var colorScheme
     @Query(sort: \CardList.createdAt) private var lists: [CardList]
+    @State private var purchaseList: CardList?
 
     var body: some View {
         let colors = themeStore.colors(for: colorScheme)
@@ -64,6 +65,9 @@ struct CardDetailView: View {
         .background(colors.background)
         .tint(colors.accent)
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $purchaseList) { list in
+            PurchaseEditorView(card: card, list: list)
+        }
     }
 
     private var detailTags: [String] {
@@ -162,16 +166,30 @@ struct CardDetailView: View {
     private func listControl(_ list: CardList) -> some View {
         let colors = themeStore.colors(for: colorScheme)
         let item = list.items.first { $0.cardID == card.id }
-        HStack {
-            Button { toggle(cardIn: list, item: item) } label: {
-                Label(list.name, systemImage: item == nil ? "circle" : "checkmark.circle.fill")
-                    .foregroundStyle(item == nil ? colors.primaryText : colors.accent)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Button { toggle(cardIn: list, item: item) } label: {
+                    Label(list.name, systemImage: item == nil ? "circle" : "checkmark.circle.fill")
+                        .foregroundStyle(item == nil ? colors.primaryText : colors.accent)
+                }
+                Spacer()
+                if list.tracksPurchases, let item {
+                    Button { item.quantity = max(1, item.quantity - 1) } label: { Image(systemName: "minus.circle") }
+                        .accessibilityLabel("Decrease quantity")
+                    Text("\(item.quantity)").monospacedDigit().frame(minWidth: 22)
+                    Button { item.quantity += 1 } label: { Image(systemName: "plus.circle") }
+                        .accessibilityLabel("Increase quantity")
+                }
             }
-            Spacer()
-            if list.builtInKind == .collection, let item {
-                Button { item.quantity = max(1, item.quantity - 1) } label: { Image(systemName: "minus.circle") }
-                Text("\(item.quantity)").monospacedDigit().frame(minWidth: 22)
-                Button { item.quantity += 1 } label: { Image(systemName: "plus.circle") }
+            if list.tracksPurchases, let item {
+                Button { purchaseList = list } label: {
+                    if let price = item.purchasePrice {
+                        Text("Paid \(price.formatted(.currency(code: "JPY"))) per copy · Edit")
+                    } else {
+                        Label("Add purchase price", systemImage: "pencil")
+                    }
+                }
+                .font(.caption).foregroundStyle(colors.accent)
             }
         }
         .buttonStyle(.plain)
@@ -181,6 +199,87 @@ struct CardDetailView: View {
 
     private func toggle(cardIn list: CardList, item: CardListItem?) {
         if let item { modelContext.delete(item) }
+        else if list.tracksPurchases { purchaseList = list }
         else { list.items.append(CardListItem(cardID: card.id)) }
+    }
+}
+
+struct PurchaseEditorView: View {
+    let card: Card
+    let list: CardList
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+    @State private var amount = ""
+    @State private var quantity = 1
+    @State private var saveError: String?
+
+    private var item: CardListItem? { list.items.first { $0.cardID == card.id } }
+    private var trimmedAmount: String { amount.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var parsedAmount: Decimal? {
+        guard trimmedAmount.range(of: #"^[0-9]+$"#, options: .regularExpression) != nil,
+              let value = Decimal(string: trimmedAmount, locale: Locale(identifier: "en_US_POSIX")),
+              value <= 999_999_999 else { return nil }
+        return value
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text(card.name).font(.headline)
+                    Text("\(card.number) · \(card.rarity)").foregroundStyle(.secondary)
+                    Stepper("Quantity: \(quantity)", value: $quantity, in: 1...999_999)
+                }
+                Section {
+                    TextField("Price per copy in JPY (optional)", text: $amount)
+                        .keyboardType(.numberPad)
+                    if !trimmedAmount.isEmpty && parsedAmount == nil {
+                        Text("Enter a whole-yen price from 0 to 999,999,999, without commas.")
+                            .font(.caption).foregroundStyle(.red)
+                    }
+                } footer: {
+                    Text("For copies bought at different prices, enter the average price per copy. Leave blank if unknown. Your purchase details are saved on this device.")
+                }
+                if let saveError { Text(saveError).foregroundStyle(.red) }
+            }
+            .navigationTitle(item == nil ? "Add to \(list.name)" : "Edit purchase")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save", action: save)
+                        .disabled(!trimmedAmount.isEmpty && parsedAmount == nil)
+                }
+            }
+            .onAppear {
+                if let item {
+                    quantity = item.quantity
+                    amount = item.purchasePriceText ?? ""
+                }
+            }
+        }
+    }
+
+    private func save() {
+        let existing = item
+        let target = existing ?? CardListItem(cardID: card.id)
+        let oldQuantity = target.quantity
+        let oldPrice = target.purchasePriceText
+        if existing == nil { list.items.append(target) }
+        target.quantity = quantity
+        target.purchasePriceText = parsedAmount.map { NSDecimalNumber(decimal: $0).stringValue }
+        do {
+            try modelContext.save()
+            dismiss()
+        } catch {
+            if existing == nil {
+                list.items.removeAll { $0.id == target.id }
+                modelContext.delete(target)
+            } else {
+                target.quantity = oldQuantity
+                target.purchasePriceText = oldPrice
+            }
+            saveError = "Could not save your purchase. Please try again."
+        }
     }
 }

@@ -30,6 +30,19 @@ final class CardPriceStore {
     func isLoading(_ card: Card) -> Bool { loadingNumbers.contains(key(for: card)) }
     func error(for card: Card) -> String? { errors[key(for: card)] }
 
+    func loadCachedPrice(for card: Card) async {
+        let key = key(for: card)
+        guard results[key] == nil, let cached = await Self.readCache(for: key), results[key] == nil else { return }
+        results[key] = cached
+    }
+
+    func estimatedPriceYen(for card: Card) -> Int? {
+        result(for: card)?.quotes.filter {
+            $0.cardNumber.caseInsensitiveCompare(card.number) == .orderedSame &&
+            $0.rarity.caseInsensitiveCompare(card.rarity) == .orderedSame
+        }.map(\.priceYen).min()
+    }
+
     func lookup(_ card: Card, force: Bool = false) async {
         let key = key(for: card)
         guard !loadingNumbers.contains(key) else { return }
@@ -48,6 +61,7 @@ final class CardPriceStore {
             results[key] = result
             await Self.writeCache(result, for: key)
         } catch {
+            if results[key] == nil { await loadCachedPrice(for: card) }
             errors[key] = "Price lookup is temporarily unavailable."
         }
     }

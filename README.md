@@ -37,11 +37,30 @@ The catalog sync also cross-references the official English card list by card nu
 - Filter by rarity, card type, color, bloom level, set, or parallel status
 - Wishlist and collection lists, plus custom lists
 - Per-card collection quantities
+- Optional JPY purchase price per copy when adding to a collection or custom list, editable from card details
+- Collection worth summary with quantity-adjusted total paid, missing-price counts, and cached Yuyutei shop estimates
 - Native SwiftData persistence
 - Adaptive iPhone and iPad card grid
 - Resumable on-device artwork library for offline card images
 - Card details with links to the official Japanese source
 - On-demand Yuyutei sale-price lookup by card number and rarity, with stock status, direct listing links, and a 12-hour on-device cache
+
+## Purchase prices and collection worth
+
+Tap a collection or custom list in a card's details to enter quantity and an optional whole-yen purchase price per copy. For copies purchased at different prices, enter the average per copy, rounded to whole yen. Tap the purchase price below the list name to edit it later or clear it. Changing quantity applies that same per-copy price to all copies. Cancelling the editor leaves the list unchanged.
+
+Open the collection from Home or My Lists to see **Total paid** and a separate Yuyutei shop estimate. Unknown purchase prices are excluded and counted; a price of zero means a free card. Shop estimates use the lowest cached listing matching the card number and rarity, including out-of-stock listings, multiplied by quantity. Missing quotes are explicitly shown as incomplete coverage. These are shop-price estimates and may not distinguish artwork variants with the same number and rarity.
+
+**Refresh Yuyutei value** fetches the collection's prices. Previously cached quotes remain available offline, with the oldest lookup date displayed. Purchase prices and quantities persist in local SwiftData storage; cloud sync is disabled. Existing items start with an unknown purchase price.
+
+On macOS 14+ with Xcode installed, run the native totals/persistence regression check:
+
+```bash
+xcrun swiftc -parse-as-library -target "$(uname -m)-apple-macosx14.0" HoloWish/Models/CardList.swift test/collection-persistence.swift -o /tmp/holowish-collection-check
+/tmp/holowish-collection-check
+```
+
+Before releasing, build in Xcode and verify on a simulator/device: upgrade an existing populated install; add, cancel, edit, and clear a price; enter zero and invalid input; change quantities and remove cards; relaunch in airplane mode and check saved totals. Refresh shop values online, then offline, checking partial coverage and retained cached quotes. Also check custom lists, unchanged wishlist behavior, and larger Dynamic Type sizes. Native build, migration, and device UI checks require macOS/Xcode and cannot run from the Windows development workspace.
 
 ## Theme palettes
 

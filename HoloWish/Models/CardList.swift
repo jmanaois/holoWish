@@ -25,6 +25,16 @@ final class CardList {
     }
 
     var builtInKind: BuiltInList? { builtInKindRaw.flatMap(BuiltInList.init(rawValue:)) }
+
+    var tracksPurchases: Bool { builtInKind != .wishlist }
+
+    var totalPaidYen: Decimal {
+        items.reduce(Decimal.zero) { $0 + ($1.purchasePrice ?? 0) * Decimal($1.quantity) }
+    }
+
+    var unpricedQuantity: Int {
+        items.filter { $0.purchasePrice == nil }.reduce(0) { $0 + $1.quantity }
+    }
 }
 
 @Model
@@ -34,6 +44,13 @@ final class CardListItem {
     var quantity: Int
     var addedAt: Date
     var list: CardList?
+    // Optional storage allows existing local collections to migrate without a price.
+    // A decimal string preserves exact yen amounts without floating-point rounding.
+    var purchasePriceText: String?
+
+    var purchasePrice: Decimal? {
+        purchasePriceText.flatMap { Decimal(string: $0, locale: Locale(identifier: "en_US_POSIX")) }
+    }
 
     init(cardID: Int, quantity: Int = 1, list: CardList? = nil) {
         id = UUID()

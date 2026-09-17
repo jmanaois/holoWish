@@ -29,6 +29,6 @@ struct HoloWishApp: App {
                     }
                 }
         }
-        .modelContainer(for: [CardList.self, CardListItem.self])
+        .modelContainer(for: [CardList.self, CardListItem.self], configurations: ModelConfiguration(cloudKitDatabase: .none))
     }
 }

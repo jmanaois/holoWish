@@ -72,6 +72,7 @@ struct SettingsView: View {
     @Environment(CardCatalog.self) private var catalog
     @Environment(CardArtworkStore.self) private var artwork
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.deviceColorScheme) private var deviceColorScheme
     @Environment(\.dismiss) private var dismiss
     @State private var showingThemes = false
     @State private var showingClearArtworkConfirmation = false
@@ -222,7 +223,7 @@ struct SettingsView: View {
         }
         .background(colors.background)
         .presentationBackground(colors.background)
-        .preferredColorScheme(appSettings.appearance.colorScheme)
+        .preferredColorScheme(appSettings.appearance.resolvedColorScheme(system: deviceColorScheme))
     }
 
     private var catalogSyncDescription: String {

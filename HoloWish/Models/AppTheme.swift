@@ -141,6 +141,21 @@ enum AppAppearance: String, CaseIterable, Identifiable {
         case .dark: .dark
         }
     }
+
+    func resolvedColorScheme(system: ColorScheme) -> ColorScheme {
+        colorScheme ?? system
+    }
+}
+
+private struct DeviceColorSchemeKey: EnvironmentKey {
+    static let defaultValue: ColorScheme = .light
+}
+
+extension EnvironmentValues {
+    var deviceColorScheme: ColorScheme {
+        get { self[DeviceColorSchemeKey.self] }
+        set { self[DeviceColorSchemeKey.self] = newValue }
+    }
 }
 
 enum CardNamePreference: String, CaseIterable, Identifiable {

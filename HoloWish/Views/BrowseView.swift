@@ -365,11 +365,14 @@ private struct SetTile: View {
     var body: some View {
         let colors = themeStore.colors(for: colorScheme)
         VStack(alignment: .leading, spacing: 0) {
-            CachedSetImage(set: summary, contentMode: .fit)
-                .frame(maxWidth: .infinity)
-                .aspectRatio(506 / 314, contentMode: .fit)
-                .padding(6)
-                .background(colors.background.opacity(0.55))
+            ZStack {
+                colors.background.opacity(0.55)
+                CachedSetImage(set: summary, contentMode: .fit)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(6)
+            }
+            .aspectRatio(506 / 314, contentMode: .fit)
+            .clipped()
             VStack(alignment: .leading, spacing: 5) {
                 Text(summary.displayName)
                     .font(.caption2.bold())
@@ -448,11 +451,14 @@ struct SetDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 if summary.productImage != nil {
-                    CachedSetImage(set: summary, contentMode: .fit)
-                        .frame(maxWidth: 420)
+                    ZStack {
+                        colors.surface
+                        CachedSetImage(set: summary, contentMode: .fit)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .padding(10)
+                    }
                         .aspectRatio(506 / 314, contentMode: .fit)
-                        .padding(10)
-                        .background(colors.surface)
+                        .frame(maxWidth: 420)
                         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         .frame(maxWidth: .infinity)
                         .padding(.horizontal)

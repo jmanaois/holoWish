@@ -230,6 +230,7 @@ private struct CollectionValueCard: View {
                     .foregroundStyle(colors.accent)
                     .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
             }
+            .animation(.easeInOut(duration: 0.35), value: selectedRange)
             .chartXAxis {
                 AxisMarks(values: .automatic(desiredCount: 2)) {
                     AxisGridLine().foregroundStyle(colors.secondaryText.opacity(0.1))
@@ -252,6 +253,7 @@ private struct CollectionValueCard: View {
             }
             .pickerStyle(.segmented)
             .accessibilityLabel("Collection value history range")
+            .sensoryFeedback(.selection, trigger: selectedRange)
         }
         .padding(18)
         .background(colors.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))

@@ -65,6 +65,7 @@ struct ListDetailView: View {
     @Environment(CardCatalog.self) private var catalog
     @Environment(ThemeStore.self) private var themeStore
     @Environment(AppSettings.self) private var appSettings
+    @Environment(AppNavigation.self) private var navigation
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \CollectionValueSnapshot.recordedAt) private var allValueSnapshots: [CollectionValueSnapshot]
@@ -93,8 +94,18 @@ struct ListDetailView: View {
         let colors = themeStore.colors(for: colorScheme)
         Group {
             if list.items.isEmpty {
-                ContentUnavailableView("No cards yet", systemImage: "rectangle.stack.badge.plus", description: Text("Add cards from the Search tab."))
-                    .foregroundStyle(colors.primaryText)
+                ContentUnavailableView {
+                    Label(emptyTitle, systemImage: emptySystemImage)
+                } description: {
+                    Text(emptyDescription)
+                } actions: {
+                    Button {
+                        navigation.selectedTab = .search
+                    } label: {
+                        Label("Browse Cards", systemImage: "magnifyingglass")
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 22) {
@@ -151,6 +162,30 @@ struct ListDetailView: View {
         .task { ensureValueHistory() }
         .sheet(item: $purchaseCard) { card in
             if let collection { PurchaseEditorView(card: card, list: collection) }
+        }
+    }
+
+    private var emptyTitle: String {
+        switch list.builtInKind {
+        case .wishlist: "Your wishlist is empty"
+        case .collection: "Your collection is empty"
+        case nil: "No cards in this list"
+        }
+    }
+
+    private var emptySystemImage: String {
+        switch list.builtInKind {
+        case .wishlist: "heart"
+        case .collection: "square.stack.3d.up"
+        case nil: "rectangle.stack.badge.plus"
+        }
+    }
+
+    private var emptyDescription: String {
+        switch list.builtInKind {
+        case .wishlist: "Save cards you want to find again or collect later."
+        case .collection: "Browse the catalog and add your first card."
+        case nil: "Browse the catalog to add cards to this list."
         }
     }
 

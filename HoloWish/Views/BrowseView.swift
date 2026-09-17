@@ -10,6 +10,7 @@ struct BrowseView: View {
     @State private var filters = CardFilters()
     @State private var showingFilters = false
     @State private var visibleLimit = 40
+    @AppStorage("search.recentQueries") private var recentSearchesStorage = "[]"
 
     private let columns = CardGridLayout.columns
     private let setColumns = [GridItem(.adaptive(minimum: 108, maximum: 156), spacing: 8, alignment: .top)]
@@ -44,6 +45,11 @@ struct BrowseView: View {
     }
 
     private var setSections: [SetSection] { sections(for: catalog.setSummaries) }
+    private var recentSearches: [String] {
+        guard let data = recentSearchesStorage.data(using: .utf8),
+              let values = try? JSONDecoder().decode([String].self, from: data) else { return [] }
+        return values
+    }
 
     private func sections(for sets: [CardSetSummary]) -> [SetSection] {
         CardSetGroup.allCases.compactMap { group in
@@ -59,7 +65,19 @@ struct BrowseView: View {
                 if catalog.isLoading && catalog.cards.isEmpty {
                     ProgressView("Loading Japanese card catalog…")
                 } else if let message = catalog.errorMessage {
-                    ContentUnavailableView("Catalog unavailable", systemImage: "exclamationmark.triangle", description: Text(message))
+                    ContentUnavailableView {
+                        Label("Catalog unavailable", systemImage: "exclamationmark.triangle")
+                    } description: {
+                        Text(message)
+                    } actions: {
+                        Button("Try Again") {
+                            Task {
+                                await catalog.load()
+                                await catalog.checkForUpdates(force: true)
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
                 } else if normalizedQuery.isEmpty && !filters.isActive {
                     setBrowser
                 } else {
@@ -69,6 +87,7 @@ struct BrowseView: View {
             .background(colors.background)
             .navigationTitle("Search")
             .searchable(text: $searchText, prompt: "English/Japanese card or set name")
+            .onSubmit(of: .search) { rememberSearch(searchText) }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { Task { await catalog.checkForUpdates(force: true) } } label: {
@@ -99,6 +118,8 @@ struct BrowseView: View {
         let colors = themeStore.colors(for: colorScheme)
         return ScrollView {
             LazyVStack(alignment: .leading, spacing: 22) {
+                searchShortcuts
+
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Browse Sets")
                         .font(.title2.bold()).foregroundStyle(colors.primaryText)
@@ -115,7 +136,7 @@ struct BrowseView: View {
                                 NavigationLink { SetDetailView(summary: summary) } label: {
                                     SetTile(summary: summary, collectionIDs: collectionIDs)
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(CardPressButtonStyle())
                             }
                         }
                         .padding(.horizontal, 12)
@@ -142,7 +163,8 @@ struct BrowseView: View {
                                     NavigationLink { SetDetailView(summary: summary) } label: {
                                         SetTile(summary: summary, collectionIDs: collectionIDs)
                                     }
-                                    .buttonStyle(.plain)
+                                    .buttonStyle(CardPressButtonStyle())
+                                    .simultaneousGesture(TapGesture().onEnded { rememberSearch(searchText) })
                                 }
                             }
                             .padding(.horizontal, 12)
@@ -159,7 +181,23 @@ struct BrowseView: View {
                 .padding(.horizontal)
 
                 if cards.isEmpty {
-                    ContentUnavailableView.search(text: searchText).frame(maxWidth: .infinity).padding(.top, 40)
+                    ContentUnavailableView {
+                        Label("No matching cards", systemImage: "rectangle.stack.badge.magnifyingglass")
+                    } description: {
+                        Text("Try a different name or remove some filters.")
+                    } actions: {
+                        HStack {
+                            if !normalizedQuery.isEmpty {
+                                Button("Clear Search") { searchText = "" }
+                            }
+                            if filters.isActive {
+                                Button("Clear Filters") { filters.clear() }
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 40)
                 } else {
                     LazyVGrid(columns: columns, spacing: 24) {
                         ForEach(cards.prefix(visibleLimit)) { card in
@@ -170,8 +208,9 @@ struct BrowseView: View {
                                     isCollected: collectionIDs.contains(card.id)
                                 )
                             }
-                                .buttonStyle(.plain)
+                                .buttonStyle(CardPressButtonStyle())
                                 .cardQuickActions(card: card, wishlist: wishlist, collection: collection)
+                                .simultaneousGesture(TapGesture().onEnded { rememberSearch(searchText) })
                         }
                     }
                     .padding(.horizontal)
@@ -190,7 +229,103 @@ struct BrowseView: View {
     private var updateAlertBinding: Binding<Bool> {
         Binding(get: { catalog.updateMessage != nil }, set: { if !$0 { catalog.dismissUpdateMessage() } })
     }
+
+    private var searchShortcuts: some View {
+        let colors = themeStore.colors(for: colorScheme)
+        return VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Quick Filters")
+                    .font(.headline)
+                    .foregroundStyle(colors.primaryText)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        quickFilterButton("Oshi", systemImage: "star.fill", filter: .oshi)
+                        quickFilterButton("Members", systemImage: "person.2.fill", filter: .members)
+                        quickFilterButton("Super Rare", systemImage: "sparkles", filter: .superRare)
+                        quickFilterButton("Parallel", systemImage: "square.2.layers.3d", filter: .parallel)
+                        if catalog.setSummaries.first != nil {
+                            quickFilterButton("Newest Set", systemImage: "clock.badge", filter: .newestSet)
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+                .contentMargins(.horizontal, -16, for: .scrollContent)
+            }
+
+            if !recentSearches.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Recent Searches")
+                            .font(.headline)
+                            .foregroundStyle(colors.primaryText)
+                        Spacer()
+                        Button("Clear") { recentSearchesStorage = "[]" }
+                            .font(.caption.bold())
+                    }
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(recentSearches, id: \.self) { query in
+                                Button {
+                                    searchText = query
+                                    rememberSearch(query)
+                                } label: {
+                                    Label(query, systemImage: "clock.arrow.circlepath")
+                                        .font(.caption.bold())
+                                        .padding(.horizontal, 11)
+                                        .padding(.vertical, 8)
+                                        .background(colors.surface, in: Capsule())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                    .contentMargins(.horizontal, -16, for: .scrollContent)
+                }
+            }
+        }
+        .padding(.horizontal)
+    }
+
+    private func quickFilterButton(_ title: String, systemImage: String, filter: BrowseQuickFilter) -> some View {
+        let colors = themeStore.colors(for: colorScheme)
+        return Button {
+            withAnimation(.easeInOut(duration: 0.22)) {
+                searchText = ""
+                filters.clear()
+                switch filter {
+                case .oshi: filters.type = "推しホロメン"
+                case .members: filters.type = "ホロメン"
+                case .superRare: filters.rarity = "SR"
+                case .parallel: filters.parallelsOnly = true
+                case .newestSet: filters.set = catalog.setSummaries.first?.name ?? ""
+                }
+            }
+        } label: {
+            Label(title, systemImage: systemImage)
+                .font(.caption.bold())
+                .padding(.horizontal, 11)
+                .padding(.vertical, 8)
+                .foregroundStyle(colors.accent)
+                .background(colors.surface, in: Capsule())
+                .overlay { Capsule().stroke(colors.accent.opacity(0.25), lineWidth: 1) }
+        }
+        .buttonStyle(CardPressButtonStyle())
+    }
+
+    private func rememberSearch(_ value: String) {
+        let query = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return }
+        var values = recentSearches.filter { $0.localizedCaseInsensitiveCompare(query) != .orderedSame }
+        values.insert(query, at: 0)
+        values = Array(values.prefix(6))
+        guard let data = try? JSONEncoder().encode(values),
+              let encoded = String(data: data, encoding: .utf8) else { return }
+        recentSearchesStorage = encoded
+    }
 }
+
+private enum BrowseQuickFilter { case oshi, members, superRare, parallel, newestSet }
 
 private struct SetSection: Identifiable {
     let group: CardSetGroup
@@ -244,6 +379,7 @@ private struct SetTile: View {
                 ProgressView(value: progress)
                     .tint(progress >= 1 ? colors.secondaryAccent : colors.accent)
                     .scaleEffect(x: 1, y: 1.25)
+                    .animation(.easeInOut(duration: 0.3), value: progress)
                 HStack(spacing: 4) {
                     Text("\(ownedCount) / \(summary.cardIDs.count)")
                     Spacer(minLength: 2)
@@ -257,6 +393,9 @@ private struct SetTile: View {
         }
         .background(colors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(summary.displayName)
+        .accessibilityValue("\(ownedCount) of \(summary.cardIDs.count) cards collected")
     }
 }
 
@@ -352,6 +491,11 @@ struct SetDetailView: View {
                         systemImage: "rectangle.stack.badge.magnifyingglass",
                         description: Text("Try another name or clear the active filters.")
                     )
+                    Button("Clear Search & Filters") {
+                        searchText = ""
+                        filters.clear()
+                    }
+                    .buttonStyle(.borderedProminent)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 36)
                 } else {

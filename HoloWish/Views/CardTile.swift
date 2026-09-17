@@ -100,6 +100,15 @@ struct CardTile: View {
     }
 }
 
+struct CardPressButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.975 : 1)
+            .opacity(configuration.isPressed ? 0.88 : 1)
+            .animation(.easeOut(duration: 0.14), value: configuration.isPressed)
+    }
+}
+
 struct RarityBadgeStyle {
     let background: Color
     let foreground: Color
@@ -162,6 +171,7 @@ struct CardQuickActionsModifier: ViewModifier {
     @Environment(\.modelContext) private var modelContext
     @Environment(AppSettings.self) private var appSettings
     @State private var purchaseList: CardList?
+    @State private var feedbackTrigger = 0
 
     func body(content: Content) -> some View {
         content.contextMenu {
@@ -169,6 +179,7 @@ struct CardQuickActionsModifier: ViewModifier {
                 let isIncluded = wishlist.contains(cardID: card.id)
                 Button(role: isIncluded ? .destructive : nil) {
                     wishlist.toggleMembership(cardID: card.id, in: modelContext)
+                    feedbackTrigger += 1
                 } label: {
                     Label(
                         isIncluded ? "Remove from Wishlist" : "Add to Wishlist",
@@ -184,6 +195,7 @@ struct CardQuickActionsModifier: ViewModifier {
                         purchaseList = collection
                     } else {
                         collection.toggleMembership(cardID: card.id, in: modelContext)
+                        feedbackTrigger += 1
                     }
                 } label: {
                     Label(
@@ -196,6 +208,7 @@ struct CardQuickActionsModifier: ViewModifier {
         .sheet(item: $purchaseList) { list in
             PurchaseEditorView(card: card, list: list)
         }
+        .sensoryFeedback(.impact(weight: .light), trigger: feedbackTrigger)
     }
 }
 

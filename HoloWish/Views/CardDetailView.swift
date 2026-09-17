@@ -10,6 +10,10 @@ struct CardDetailView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Query(sort: \CardList.createdAt) private var lists: [CardList]
     @State private var purchaseList: CardList?
+    @State private var actionFeedback = 0
+
+    private var wishlist: CardList? { lists.first { $0.builtInKind == .wishlist } }
+    private var collection: CardList? { lists.first { $0.builtInKind == .collection } }
 
     var body: some View {
         let colors = themeStore.colors(for: colorScheme)
@@ -51,9 +55,13 @@ struct CardDetailView: View {
         .background(colors.background)
         .tint(colors.accent)
         .navigationBarTitleDisplayMode(.inline)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            persistentActionBar
+        }
         .sheet(item: $purchaseList) { list in
             PurchaseEditorView(card: card, list: list)
         }
+        .sensoryFeedback(.impact(weight: .light), trigger: actionFeedback)
     }
 
     private var detailTags: [String] {
@@ -108,38 +116,51 @@ struct CardDetailView: View {
         .padding(.horizontal)
     }
 
+    @ViewBuilder
     private var listSection: some View {
         let colors = themeStore.colors(for: colorScheme)
         let customLists = lists.filter { $0.builtInKind == nil }
-        return VStack(alignment: .leading, spacing: 12) {
-            Label("Save This Card", systemImage: "plus.square.on.square")
-                .font(.headline)
-                .foregroundStyle(colors.primaryText)
-            HStack(spacing: 12) {
-                if let wishlist = lists.first(where: { $0.builtInKind == .wishlist }) {
+        let collectionItem = collection?.items.first { $0.cardID == card.id }
+        if collectionItem != nil || !customLists.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                if let collection, let collectionItem {
+                    Label("Collection Details", systemImage: "square.stack.3d.up.fill")
+                        .font(.headline)
+                        .foregroundStyle(colors.primaryText)
+                    collectionControls(item: collectionItem, list: collection)
+                }
+
+                if !customLists.isEmpty {
+                    Text("CUSTOM LISTS")
+                        .font(.caption.bold())
+                        .foregroundStyle(colors.secondaryText)
+                        .padding(.top, collectionItem == nil ? 0 : 4)
+                    ForEach(customLists) { list in listControl(list) }
+                }
+            }
+            .padding(16)
+            .background(colors.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .padding(.horizontal)
+        }
+    }
+
+    @ViewBuilder
+    private var persistentActionBar: some View {
+        let colors = themeStore.colors(for: colorScheme)
+        if wishlist != nil || collection != nil {
+            HStack(spacing: 10) {
+                if let wishlist {
                     builtInListButton(wishlist, color: colors.accent)
                 }
-                if let collection = lists.first(where: { $0.builtInKind == .collection }) {
+                if let collection {
                     builtInListButton(collection, color: colors.secondaryAccent)
                 }
             }
-
-            if let collection = lists.first(where: { $0.builtInKind == .collection }),
-               let item = collection.items.first(where: { $0.cardID == card.id }) {
-                collectionControls(item: item, list: collection)
-            }
-
-            if !customLists.isEmpty {
-                Text("CUSTOM LISTS")
-                    .font(.caption.bold())
-                    .foregroundStyle(colors.secondaryText)
-                    .padding(.top, 4)
-                ForEach(customLists) { list in listControl(list) }
-            }
+            .padding(.horizontal)
+            .padding(.vertical, 10)
+            .background(.ultraThinMaterial)
+            .overlay(alignment: .top) { Divider().opacity(0.35) }
         }
-        .padding(16)
-        .background(colors.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .padding(.horizontal)
     }
 
     @ViewBuilder
@@ -259,7 +280,11 @@ struct CardDetailView: View {
         }
 
         return Button { toggle(cardIn: list, item: item) } label: {
-            Label(title, systemImage: isAdded ? "checkmark" : "plus")
+            HStack(spacing: 6) {
+                Image(systemName: isAdded ? "checkmark" : "plus")
+                    .contentTransition(.symbolEffect(.replace))
+                Text(title)
+            }
                 .font(.footnote.bold())
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
@@ -274,6 +299,7 @@ struct CardDetailView: View {
                 }
         }
         .buttonStyle(.plain)
+        .animation(.spring(response: 0.3, dampingFraction: 0.75), value: isAdded)
         .accessibilityHint(isAdded ? "Removes this card from \(list.name)" : "Adds this card to \(list.name)")
     }
 
@@ -351,9 +377,14 @@ struct CardDetailView: View {
             modelContext.delete(item)
             list.recordValue(newValue, in: modelContext)
             try? modelContext.save()
+            actionFeedback += 1
         }
         else if list.tracksPurchases { purchaseList = list }
-        else { list.items.append(CardListItem(cardID: card.id)) }
+        else {
+            list.items.append(CardListItem(cardID: card.id))
+            try? modelContext.save()
+            actionFeedback += 1
+        }
     }
 
     private func changeQuantity(of item: CardListItem, in list: CardList, by change: Int) {
@@ -362,6 +393,7 @@ struct CardDetailView: View {
         item.quantity = newQuantity
         list.recordValue(in: modelContext)
         try? modelContext.save()
+        actionFeedback += 1
     }
 }
 

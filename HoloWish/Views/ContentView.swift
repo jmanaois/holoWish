@@ -6,10 +6,11 @@ struct ContentView: View {
     @Environment(ThemeStore.self) private var themeStore
     @Environment(\.colorScheme) private var colorScheme
     @Query private var lists: [CardList]
-    @State private var selectedTab: AppTab = .home
+    @State private var navigation = AppNavigation()
 
     var body: some View {
-        TabView(selection: $selectedTab) {
+        @Bindable var navigation = navigation
+        TabView(selection: $navigation.selectedTab) {
             DashboardView()
                 .tabItem { Label("Home", systemImage: "house.fill") }
                 .tag(AppTab.home)
@@ -23,6 +24,7 @@ struct ContentView: View {
                 .tabItem { Label("Collection", systemImage: "square.stack.3d.up.fill") }
                 .tag(AppTab.collection)
         }
+        .environment(navigation)
         .tint(themeStore.colors(for: colorScheme).accent)
         .task { seedBuiltInLists() }
     }
@@ -59,4 +61,10 @@ private struct BuiltInListTabView: View {
     }
 }
 
-private enum AppTab: Hashable { case home, search, wishlist, collection }
+enum AppTab: Hashable { case home, search, wishlist, collection }
+
+@MainActor
+@Observable
+final class AppNavigation {
+    var selectedTab: AppTab = .home
+}

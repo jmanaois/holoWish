@@ -2,42 +2,50 @@ import Observation
 import SwiftUI
 
 enum AppTheme: String, CaseIterable, Identifiable {
-    case hazakura = "SWG Hazakura Light"
-    case ishtar = "GMK Ishtar"
-    case lavender = "SWG Lavender"
-    case tako = "GMK Tako"
-    case shoko = "GMK Shoko"
-    case abyssal = "GMK Abyssal"
+    case bijou = "Koseki Bijou"
+    case ayame = "Nakiri Ayame"
+    case kronii = "Ouro Kronii"
+    case gigi = "Gigi Murin"
+    case shiori = "Shiori Novella"
 
     var id: String { rawValue }
 
+    var paletteDescription: String {
+        switch self {
+        case .bijou: "Amethyst, crystal pink & silver"
+        case .ayame: "Crimson, gold & charcoal"
+        case .kronii: "Royal blue, clockwork gold & navy"
+        case .gigi: "Orange, sunshine gold & charcoal"
+        case .shiori: "Ink, silver & amber"
+        }
+    }
+
+    // Inspired by the original model artwork on each member's official profile.
+    // Accent shades are deeper in light mode and brighter in dark mode so they
+    // remain readable as small labels as well as control tints.
     func colors(for scheme: ColorScheme) -> ThemeColors {
         let dark = scheme == .dark
         switch self {
-        case .hazakura:
+        case .bijou:
             return dark
-                ? ThemeColors(background: 0x1C151A, surface: 0x2C2028, primaryText: 0xFFF2F6, secondaryText: 0xD8BCC8, accent: 0xFF8FB5, secondaryAccent: 0x9FC394)
-                : ThemeColors(background: 0xFFF8FA, surface: 0xFFF0F4, primaryText: 0x392B35, secondaryText: 0x765C6A, accent: 0xD95F8D, secondaryAccent: 0x789874)
-        case .ishtar:
+                ? ThemeColors(background: 0x171321, surface: 0x292238, primaryText: 0xF5F0FF, secondaryText: 0xC9BCD9, accent: 0xBEA0FF, secondaryAccent: 0xEDA5CE)
+                : ThemeColors(background: 0xFAF8FF, surface: 0xEEE8F7, primaryText: 0x2C233C, secondaryText: 0x655573, accent: 0x6940A5, secondaryAccent: 0x993968)
+        case .ayame:
             return dark
-                ? ThemeColors(background: 0x130F0C, surface: 0x281D15, primaryText: 0xF9E7BF, secondaryText: 0xCDB78C, accent: 0xE34A45, secondaryAccent: 0xD7A32B)
-                : ThemeColors(background: 0xFFF8E8, surface: 0xF4E4C1, primaryText: 0x241813, secondaryText: 0x735845, accent: 0xA8202A, secondaryAccent: 0xB57C10)
-        case .lavender:
+                ? ThemeColors(background: 0x1B1418, surface: 0x302228, primaryText: 0xFFF2F1, secondaryText: 0xD6BDBF, accent: 0xFF8A9B, secondaryAccent: 0xE9C36D)
+                : ThemeColors(background: 0xFFF8F6, surface: 0xF4E7E5, primaryText: 0x30232B, secondaryText: 0x75575E, accent: 0xB32343, secondaryAccent: 0x806013)
+        case .kronii:
             return dark
-                ? ThemeColors(background: 0x18131F, surface: 0x2A2136, primaryText: 0xF4EBFC, secondaryText: 0xC7B1D8, accent: 0xB995DD, secondaryAccent: 0x7DAFA8)
-                : ThemeColors(background: 0xFAF7FD, surface: 0xECE2F8, primaryText: 0x33253F, secondaryText: 0x6E5A7C, accent: 0x805AA8, secondaryAccent: 0x548F87)
-        case .tako:
+                ? ThemeColors(background: 0x101525, surface: 0x1D2940, primaryText: 0xEFF5FF, secondaryText: 0xB5C5DF, accent: 0x90B5FF, secondaryAccent: 0xE3C775)
+                : ThemeColors(background: 0xF6F8FF, surface: 0xE6ECF7, primaryText: 0x1E2A43, secondaryText: 0x51627E, accent: 0x304FB0, secondaryAccent: 0x7C611B)
+        case .gigi:
             return dark
-                ? ThemeColors(background: 0x150E19, surface: 0x2B1832, primaryText: 0xFBF0FD, secondaryText: 0xCEB5D5, accent: 0xC47AD1, secondaryAccent: 0xFFB565)
-                : ThemeColors(background: 0xFBF6FF, surface: 0xE9DDF0, primaryText: 0x38213F, secondaryText: 0x735979, accent: 0x6A347D, secondaryAccent: 0xD97823)
-        case .shoko:
+                ? ThemeColors(background: 0x1C1815, surface: 0x302820, primaryText: 0xFFF4E6, secondaryText: 0xDDC2A4, accent: 0xFFA34F, secondaryAccent: 0xF5D968)
+                : ThemeColors(background: 0xFFFAF1, surface: 0xF6EBD6, primaryText: 0x322822, secondaryText: 0x745E46, accent: 0xA64B0B, secondaryAccent: 0x78600C)
+        case .shiori:
             return dark
-                ? ThemeColors(background: 0x0D1821, surface: 0x172B3A, primaryText: 0xEAF7FF, secondaryText: 0xA8C5D8, accent: 0x68B5E8, secondaryAccent: 0xA7D5EC)
-                : ThemeColors(background: 0xF4FAFF, surface: 0xDCECF7, primaryText: 0x183142, secondaryText: 0x507187, accent: 0x347FB8, secondaryAccent: 0x72AFD2)
-        case .abyssal:
-            return dark
-                ? ThemeColors(background: 0x07151B, surface: 0x0E2A34, primaryText: 0xE2FAFB, secondaryText: 0x94C0C6, accent: 0x3DC3CF, secondaryAccent: 0x8173C8)
-                : ThemeColors(background: 0xEEF7F8, surface: 0xD7EAEC, primaryText: 0x102C34, secondaryText: 0x476E76, accent: 0x147C8A, secondaryAccent: 0x6657AA)
+                ? ThemeColors(background: 0x16151C, surface: 0x292630, primaryText: 0xF4F1F7, secondaryText: 0xC5BECE, accent: 0xD2C9E0, secondaryAccent: 0xE7BC70)
+                : ThemeColors(background: 0xFAF9FC, surface: 0xECE9F0, primaryText: 0x25222D, secondaryText: 0x635B70, accent: 0x51425F, secondaryAccent: 0x856019)
         }
     }
 }
@@ -70,7 +78,9 @@ final class ThemeStore {
 
     init() {
         selected = UserDefaults.standard.string(forKey: Self.defaultsKey)
-            .flatMap(AppTheme.init(rawValue:)) ?? .hazakura
+            .flatMap(AppTheme.init(rawValue:)) ?? .bijou
+        // Retired themes and first launches use Bijou; persist the resolved choice.
+        UserDefaults.standard.set(selected.rawValue, forKey: Self.defaultsKey)
     }
 
     func colors(for scheme: ColorScheme) -> ThemeColors { selected.colors(for: scheme) }

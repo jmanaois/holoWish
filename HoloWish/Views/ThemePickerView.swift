@@ -10,6 +10,11 @@ struct ThemePickerView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 12) {
+                    Text("Each palette automatically follows your iPhone or iPad’s light and dark appearance.")
+                        .font(.subheadline)
+                        .foregroundStyle(active.secondaryText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.bottom, 4)
                     ForEach(AppTheme.allCases) { theme in
                         let colors = theme.colors(for: colorScheme)
                         Button {
@@ -21,9 +26,10 @@ struct ThemePickerView: View {
                                     swatch(colors.secondaryAccent)
                                     swatch(colors.surface)
                                 }
+                                .accessibilityHidden(true)
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(theme.rawValue).font(.headline).foregroundStyle(active.primaryText)
-                                    Text(theme == themeStore.selected ? "Selected" : "Use this theme")
+                                    Text(theme.paletteDescription)
                                         .font(.caption).foregroundStyle(active.secondaryText)
                                 }
                                 Spacer()
@@ -35,6 +41,9 @@ struct ThemePickerView: View {
                             .background(active.surface, in: RoundedRectangle(cornerRadius: 17, style: .continuous))
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel(theme.rawValue)
+                        .accessibilityValue(theme == themeStore.selected ? "Selected" : "")
+                        .accessibilityAddTraits(theme == themeStore.selected ? [.isSelected] : [])
                     }
                 }
                 .padding()
@@ -48,6 +57,7 @@ struct ThemePickerView: View {
     }
 
     private func swatch(_ color: Color) -> some View {
-        Circle().fill(color).frame(width: 34, height: 34).overlay(Circle().stroke(.white.opacity(0.55), lineWidth: 1))
+        Circle().fill(color).frame(width: 34, height: 34)
+            .overlay(Circle().stroke(themeStore.colors(for: colorScheme).primaryText.opacity(0.25), lineWidth: 1))
     }
 }

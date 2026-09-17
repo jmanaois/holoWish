@@ -97,7 +97,7 @@ private struct DashboardButton: View {
     var body: some View {
         let colors = themeStore.colors(for: colorScheme)
         VStack(alignment: .leading, spacing: 12) {
-            Image(systemName: icon).font(.title).foregroundStyle(.white)
+            Image(systemName: icon).font(.title).foregroundStyle(colors.background)
                 .frame(width: 52, height: 52).background(color, in: RoundedRectangle(cornerRadius: 15))
             Spacer(minLength: 8)
             Text(title).font(.title3.bold()).foregroundStyle(colors.primaryText)

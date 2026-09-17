@@ -30,7 +30,7 @@ The catalog sync also cross-references the official English card list by card nu
 ## Current MVP
 
 - Dashboard-first navigation with large shortcuts to Wishlist, Collection, Search, and custom lists
-- Six persistent color themes inspired by SWG Hazakura Light, GMK Ishtar, SWG Lavender, GMK Tako, GMK Shoko, and GMK Abyssal, each with accessible light and dark palettes
+- Five persistent color themes inspired by Koseki Bijou, Nakiri Ayame, Ouro Kronii, Gigi Murin, and Shiori Novella, each with separate palettes that follow the iOS light/dark appearance. Bijou is the default, including for retired theme selections.
 - Browse compact set tiles using official Japanese product/booster artwork, with Japanese or English names and live collection completion progress
 - Search within any set, sort in either direction by card number, name, rarity, type, or color, and filter using only values available in that set
 - Search Japanese and official English names, card numbers, tags, and sets
@@ -42,6 +42,14 @@ The catalog sync also cross-references the official English card list by card nu
 - Resumable on-device artwork library for offline card images
 - Card details with links to the official Japanese source
 - On-demand Yuyutei sale-price lookup by card number and rarity, with stock status, direct listing links, and a 12-hour on-device cache
+
+## Theme palettes
+
+Choose a theme from the palette button on Home. Colors are inspired by the original model artwork on the official profiles for [Koseki Bijou](https://hololive.hololivepro.com/en/talents/koseki-bijou/), [Nakiri Ayame](https://hololive.hololivepro.com/en/talents/nakiri-ayame/), [Ouro Kronii](https://hololive.hololivepro.com/en/talents/ouro-kronii/), [Gigi Murin](https://hololive.hololivepro.com/en/talents/gigi-murin/), and [Shiori Novella](https://hololive.hololivepro.com/en/talents/shiori-novella/). These are UI adaptations, with darker accents in light mode and brighter accents in dark mode for readability, rather than official brand color specifications.
+
+All ten palettes have at least 4.5:1 calculated contrast for primary text, secondary text, and both accents against their background and surface colors. Dashboard icons use the background color against accent fills so they remain legible in both appearances.
+
+On a Mac, verify each theme in the iOS simulator in both appearances, including Home, Search, My Lists, card details, and sheets. Toggle appearance while the theme picker is open, then relaunch to confirm the selected member is retained. Check larger Dynamic Type sizes and VoiceOver selection announcements. Palette contrast checks do not replace native rendering checks.
 
 ## Next production step
 

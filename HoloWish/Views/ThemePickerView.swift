@@ -186,7 +186,7 @@ struct SettingsView: View {
                     .padding(.vertical, 4)
                 }
             }
-            .id(themeStore.selected)
+            .id("\(themeStore.selected.id)-\(appSettings.appearance.id)")
             .scrollContentBackground(.hidden)
             .background(colors.background)
             .navigationTitle("Settings")
@@ -211,6 +211,7 @@ struct SettingsView: View {
         }
         .background(colors.background)
         .presentationBackground(colors.background)
+        .preferredColorScheme(appSettings.appearance.colorScheme)
     }
 
     private var catalogSyncDescription: String {

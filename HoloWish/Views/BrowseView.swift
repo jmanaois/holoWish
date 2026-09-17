@@ -14,8 +14,11 @@ struct BrowseView: View {
     private let columns = CardGridLayout.columns
     private let setColumns = [GridItem(.adaptive(minimum: 108, maximum: 156), spacing: 8, alignment: .top)]
 
+    private var wishlist: CardList? { lists.first { $0.builtInKind == .wishlist } }
+    private var collection: CardList? { lists.first { $0.builtInKind == .collection } }
+    private var wishlistIDs: Set<Int> { Set(wishlist?.items.map(\.cardID) ?? []) }
     private var collectionIDs: Set<Int> {
-        Set(lists.first { $0.builtInKind == .collection }?.items.map(\.cardID) ?? [])
+        Set(collection?.items.map(\.cardID) ?? [])
     }
 
     private var normalizedQuery: String {
@@ -122,6 +125,7 @@ struct BrowseView: View {
             .padding(.vertical)
         }
         .background(colors.background)
+        .contentMargins(.bottom, 100, for: .scrollContent)
     }
 
     private var searchResults: some View {
@@ -159,8 +163,15 @@ struct BrowseView: View {
                 } else {
                     LazyVGrid(columns: columns, spacing: 24) {
                         ForEach(cards.prefix(visibleLimit)) { card in
-                            NavigationLink { CardDetailView(card: card) } label: { CardTile(card: card) }
+                            NavigationLink { CardDetailView(card: card) } label: {
+                                CardTile(
+                                    card: card,
+                                    isWishlisted: wishlistIDs.contains(card.id),
+                                    isCollected: collectionIDs.contains(card.id)
+                                )
+                            }
                                 .buttonStyle(.plain)
+                                .cardQuickActions(card: card, wishlist: wishlist, collection: collection)
                         }
                     }
                     .padding(.horizontal)
@@ -173,6 +184,7 @@ struct BrowseView: View {
             }
             .padding(.vertical)
         }
+        .contentMargins(.bottom, 100, for: .scrollContent)
     }
 
     private var updateAlertBinding: Binding<Bool> {
@@ -229,10 +241,17 @@ private struct SetTile: View {
                     .foregroundStyle(colors.primaryText)
                     .lineLimit(2)
                     .frame(height: 30, alignment: .topLeading)
-                ProgressView(value: progress).tint(colors.accent)
-                Text("\(ownedCount) / \(summary.cardIDs.count)")
-                    .font(.caption2.monospacedDigit())
-                    .foregroundStyle(colors.secondaryText)
+                ProgressView(value: progress)
+                    .tint(progress >= 1 ? colors.secondaryAccent : colors.accent)
+                    .scaleEffect(x: 1, y: 1.25)
+                HStack(spacing: 4) {
+                    Text("\(ownedCount) / \(summary.cardIDs.count)")
+                    Spacer(minLength: 2)
+                    Text(progress.formatted(.percent.precision(.fractionLength(0))))
+                    if progress >= 1 { Image(systemName: "checkmark.seal.fill") }
+                }
+                .font(.caption2.bold().monospacedDigit())
+                .foregroundStyle(progress >= 1 ? colors.secondaryAccent : colors.secondaryText)
             }
             .padding(8)
         }
@@ -241,7 +260,7 @@ private struct SetTile: View {
     }
 }
 
-private struct SetDetailView: View {
+struct SetDetailView: View {
     let summary: CardSetSummary
     @Environment(CardCatalog.self) private var catalog
     @Environment(ThemeStore.self) private var themeStore
@@ -254,6 +273,9 @@ private struct SetDetailView: View {
     @State private var sortAscending = true
     private let columns = CardGridLayout.columns
 
+    private var wishlist: CardList? { lists.first { $0.builtInKind == .wishlist } }
+    private var collection: CardList? { lists.first { $0.builtInKind == .collection } }
+    private var wishlistIDs: Set<Int> { Set(wishlist?.items.map(\.cardID) ?? []) }
     private var allCards: [Card] { summary.cardIDs.compactMap { catalog.cardsByID[$0] } }
     private var normalizedQuery: String {
         searchText.trimmingCharacters(in: .whitespacesAndNewlines).localizedLowercase
@@ -273,9 +295,14 @@ private struct SetDetailView: View {
         }.sorted(by: cardSort)
     }
     private var collectionIDs: Set<Int> {
-        Set(lists.first { $0.builtInKind == .collection }?.items.map(\.cardID) ?? [])
+        Set(collection?.items.map(\.cardID) ?? [])
     }
     private var ownedCount: Int { summary.cardIDs.reduce(0) { $0 + (collectionIDs.contains($1) ? 1 : 0) } }
+    private var progress: Double { summary.cardIDs.isEmpty ? 0 : Double(ownedCount) / Double(summary.cardIDs.count) }
+    private var activeFilterCount: Int {
+        [filters.rarity, filters.type, filters.color, filters.bloomLevel].filter { !$0.isEmpty }.count
+            + (filters.parallelsOnly ? 1 : 0)
+    }
 
     var body: some View {
         let colors = themeStore.colors(for: colorScheme)
@@ -301,20 +328,21 @@ private struct SetDetailView: View {
                     } else {
                         Text(summary.name).font(.title2.bold()).foregroundStyle(colors.primaryText)
                     }
-                    ProgressView(value: Double(ownedCount), total: Double(max(1, summary.cardIDs.count))).tint(colors.accent)
-                    Text("\(ownedCount) of \(summary.cardIDs.count) collected")
-                        .font(.subheadline.monospacedDigit()).foregroundStyle(colors.secondaryText)
-                }
-                .padding(.horizontal)
-
-                HStack {
-                    Text(filtersActive || !normalizedQuery.isEmpty ? "Showing \(cards.count) of \(allCards.count) cards" : "\(allCards.count) cards")
-                        .font(.subheadline.bold()).foregroundStyle(colors.primaryText)
-                    Spacer()
-                    if filtersActive || !normalizedQuery.isEmpty {
-                        Button("Clear") { searchText = ""; filters.clear() }
-                            .font(.caption.bold())
+                    ProgressView(value: progress)
+                        .tint(progress >= 1 ? colors.secondaryAccent : colors.accent)
+                        .scaleEffect(x: 1, y: 1.5)
+                    HStack {
+                        Text("\(ownedCount) of \(summary.cardIDs.count) collected")
+                        Spacer()
+                        if progress >= 1 {
+                            Label("Complete", systemImage: "checkmark.seal.fill")
+                                .foregroundStyle(colors.secondaryAccent)
+                        } else {
+                            Text(progress.formatted(.percent.precision(.fractionLength(0))))
+                        }
                     }
+                    .font(.subheadline.bold().monospacedDigit())
+                    .foregroundStyle(colors.secondaryText)
                 }
                 .padding(.horizontal)
 
@@ -329,8 +357,15 @@ private struct SetDetailView: View {
                 } else {
                     LazyVGrid(columns: columns, spacing: 24) {
                         ForEach(cards) { card in
-                            NavigationLink { CardDetailView(card: card) } label: { CardTile(card: card) }
+                            NavigationLink { CardDetailView(card: card) } label: {
+                                CardTile(
+                                    card: card,
+                                    isWishlisted: wishlistIDs.contains(card.id),
+                                    isCollected: collectionIDs.contains(card.id)
+                                )
+                            }
                                 .buttonStyle(.plain)
+                                .cardQuickActions(card: card, wishlist: wishlist, collection: collection)
                         }
                     }
                     .padding(.horizontal)
@@ -338,40 +373,59 @@ private struct SetDetailView: View {
             }
             .padding(.vertical)
         }
+        .contentMargins(.bottom, 100, for: .scrollContent)
         .background(colors.background)
         .tint(colors.accent)
         .navigationTitle(summary.displayName)
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search this set")
-        .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                Menu {
-                    Picker("Sort by", selection: $sortOrder) {
-                        ForEach(SetCardSort.allCases) { option in
-                            Label(option.title, systemImage: option.systemImage).tag(option)
-                        }
-                    }
-                    Divider()
-                    Button {
-                        sortAscending.toggle()
-                    } label: {
-                        Label(sortAscending ? "Ascending" : "Descending", systemImage: sortAscending ? "arrow.up" : "arrow.down")
-                    }
-                } label: {
-                    Image(systemName: "arrow.up.arrow.down.circle")
-                }
-                .accessibilityLabel("Sort cards")
-
-                Button { showingFilters = true } label: {
-                    Image(systemName: filtersActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
-                }
-                .accessibilityLabel("Filter cards")
-            }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            setControlBar
         }
         .sheet(isPresented: $showingFilters) {
             FilterSheet(filters: $filters, availableCards: allCards, showsSetPicker: false)
                 .environment(catalog)
         }
+    }
+
+    private var setControlBar: some View {
+        let colors = themeStore.colors(for: colorScheme)
+        return HStack(spacing: 12) {
+            Text(filtersActive || !normalizedQuery.isEmpty ? "\(cards.count) of \(allCards.count)" : "\(allCards.count) cards")
+                .font(.caption.bold().monospacedDigit())
+                .foregroundStyle(colors.secondaryText)
+            Spacer()
+            if filtersActive || !normalizedQuery.isEmpty {
+                Button("Clear") { searchText = ""; filters.clear() }
+                    .font(.caption.bold())
+            }
+            Menu {
+                Picker("Sort by", selection: $sortOrder) {
+                    ForEach(SetCardSort.allCases) { option in
+                        Label(option.title, systemImage: option.systemImage).tag(option)
+                    }
+                }
+                Divider()
+                Button { sortAscending.toggle() } label: {
+                    Label(sortAscending ? "Ascending" : "Descending", systemImage: sortAscending ? "arrow.up" : "arrow.down")
+                }
+            } label: {
+                Label(sortOrder.title, systemImage: sortAscending ? "arrow.up" : "arrow.down")
+                    .font(.caption.bold())
+            }
+            Button { showingFilters = true } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: filtersActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                    if activeFilterCount > 0 { Text(activeFilterCount.formatted()) }
+                }
+                .font(.subheadline.bold())
+            }
+            .accessibilityLabel(activeFilterCount > 0 ? "Filters, \(activeFilterCount) active" : "Filters")
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 10)
+        .background(.ultraThinMaterial)
+        .overlay(alignment: .bottom) { Divider().opacity(0.35) }
     }
 
     private func cardSort(_ lhs: Card, _ rhs: Card) -> Bool {

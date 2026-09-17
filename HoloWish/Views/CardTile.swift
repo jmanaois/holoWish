@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 enum CardGridLayout {
@@ -8,8 +9,16 @@ enum CardGridLayout {
 
 struct CardTile: View {
     let card: Card
+    let isWishlisted: Bool
+    let isCollected: Bool
     @Environment(ThemeStore.self) private var themeStore
     @Environment(\.colorScheme) private var colorScheme
+
+    init(card: Card, isWishlisted: Bool = false, isCollected: Bool = false) {
+        self.card = card
+        self.isWishlisted = isWishlisted
+        self.isCollected = isCollected
+    }
 
     var body: some View {
         let colors = themeStore.colors(for: colorScheme)
@@ -35,6 +44,28 @@ struct CardTile: View {
                         }
                         .shadow(color: rarityStyle.background.opacity(0.35), radius: 3, y: 1)
                         .padding(8)
+                }
+
+                if isWishlisted || isCollected {
+                    HStack(spacing: 5) {
+                        if isWishlisted {
+                            Image(systemName: "heart.fill")
+                                .foregroundStyle(colors.accent)
+                                .accessibilityLabel("In Wishlist")
+                        }
+                        if isCollected {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(colors.secondaryAccent)
+                                .accessibilityLabel("In Collection")
+                        }
+                    }
+                    .font(.caption.bold())
+                    .padding(7)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .overlay { Capsule().stroke(.white.opacity(0.5), lineWidth: 0.75) }
+                    .shadow(color: .black.opacity(0.18), radius: 4, y: 2)
+                    .padding(8)
+                    .frame(maxWidth: .infinity, alignment: .topTrailing)
                 }
             }
             HStack {
@@ -69,7 +100,7 @@ struct CardTile: View {
     }
 }
 
-private struct RarityBadgeStyle {
+struct RarityBadgeStyle {
     let background: Color
     let foreground: Color
 
@@ -121,5 +152,46 @@ private struct RarityBadgeStyle {
             background = fallback
             foreground = .white
         }
+    }
+}
+
+struct CardQuickActionsModifier: ViewModifier {
+    let card: Card
+    let wishlist: CardList?
+    let collection: CardList?
+    @Environment(\.modelContext) private var modelContext
+
+    func body(content: Content) -> some View {
+        content.contextMenu {
+            if let wishlist {
+                let isIncluded = wishlist.contains(cardID: card.id)
+                Button(role: isIncluded ? .destructive : nil) {
+                    wishlist.toggleMembership(cardID: card.id, in: modelContext)
+                } label: {
+                    Label(
+                        isIncluded ? "Remove from Wishlist" : "Add to Wishlist",
+                        systemImage: isIncluded ? "heart.slash" : "heart"
+                    )
+                }
+            }
+
+            if let collection {
+                let isIncluded = collection.contains(cardID: card.id)
+                Button(role: isIncluded ? .destructive : nil) {
+                    collection.toggleMembership(cardID: card.id, in: modelContext)
+                } label: {
+                    Label(
+                        isIncluded ? "Remove from Collection" : "Add to Collection",
+                        systemImage: isIncluded ? "minus.circle" : "plus.circle"
+                    )
+                }
+            }
+        }
+    }
+}
+
+extension View {
+    func cardQuickActions(card: Card, wishlist: CardList?, collection: CardList?) -> some View {
+        modifier(CardQuickActionsModifier(card: card, wishlist: wishlist, collection: collection))
     }
 }

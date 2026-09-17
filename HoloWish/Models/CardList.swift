@@ -85,6 +85,28 @@ final class CollectionValueSnapshot {
 }
 
 extension CardList {
+    func contains(cardID: Int) -> Bool {
+        items.contains { $0.cardID == cardID }
+    }
+
+    @discardableResult
+    func toggleMembership(cardID: Int, in context: ModelContext) -> Bool {
+        if let item = items.first(where: { $0.cardID == cardID }) {
+            let removedValue = (item.purchasePrice ?? 0) * Decimal(item.quantity)
+            let newValue = max(Decimal.zero, totalPaidYen - removedValue)
+            items.removeAll { $0.id == item.id }
+            context.delete(item)
+            recordValue(newValue, in: context)
+            try? context.save()
+            return false
+        }
+
+        items.append(CardListItem(cardID: cardID))
+        recordValue(in: context)
+        try? context.save()
+        return true
+    }
+
     @discardableResult
     func recordValue(_ value: Decimal? = nil, at date: Date = .now, in context: ModelContext) -> CollectionValueSnapshot? {
         guard tracksPurchases else { return nil }

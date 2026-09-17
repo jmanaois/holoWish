@@ -13,76 +13,40 @@ struct CardDetailView: View {
     var body: some View {
         let colors = themeStore.colors(for: colorScheme)
         ScrollView {
-            VStack(spacing: 24) {
+            VStack(spacing: 20) {
                 CachedCardImage(card: card)
                 .frame(maxHeight: 480)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .shadow(color: .black.opacity(0.18), radius: 18, y: 8)
                 .padding(.horizontal, 30)
 
-                VStack(alignment: .leading, spacing: 18) {
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(card.type).font(.caption.bold()).foregroundStyle(colors.accent).textCase(.uppercase)
-                        Text(card.name).font(.title.bold()).foregroundStyle(colors.primaryText)
-                        if let englishName = card.displayEnglishName, englishName != card.name {
-                            Text(englishName).font(.title3.weight(.semibold)).foregroundStyle(colors.secondaryText)
-                        }
-                        Text("\(card.number) · \(card.rarity)").font(.subheadline).foregroundStyle(colors.secondaryText)
-                    }
+                identitySection
+                listSection
 
-                    if !detailTags.isEmpty {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack { ForEach(detailTags, id: \.self) { Text($0).font(.caption).padding(.horizontal, 9).padding(.vertical, 6).background(.quaternary, in: Capsule()) } }
-                        }
-                    }
-
-                    Divider()
+                VStack(alignment: .leading, spacing: 14) {
+                    Label("Value & Listings", systemImage: "chart.line.uptrend.xyaxis")
+                        .font(.headline)
+                        .foregroundStyle(colors.primaryText)
                     priceSection
+                }
+                .padding(16)
+                .background(colors.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .padding(.horizontal)
 
-                    Divider()
-                    if !card.allSets.isEmpty {
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text("収録商品").font(.caption.bold()).foregroundStyle(.secondary)
-                            ForEach(card.allSets, id: \.self) { Text($0).font(.subheadline) }
-                            ForEach(card.allEnglishSets, id: \.self) { Text($0).font(.caption).foregroundStyle(.secondary) }
-                        }
-                    }
+                setsSection
 
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("MY LISTS").font(.caption.bold()).foregroundStyle(colors.secondaryText)
-                        HStack(spacing: 12) {
-                            if let wishlist = lists.first(where: { $0.builtInKind == .wishlist }) {
-                                builtInListButton(wishlist, color: colors.accent)
-                            }
-                            if let collection = lists.first(where: { $0.builtInKind == .collection }) {
-                                builtInListButton(collection, color: colors.secondaryAccent)
-                            }
-                        }
-
-                        if let collection = lists.first(where: { $0.builtInKind == .collection }),
-                           let item = collection.items.first(where: { $0.cardID == card.id }) {
-                            collectionControls(item: item, list: collection)
-                        }
-
-                        let customLists = lists.filter { $0.builtInKind == nil }
-                        if !customLists.isEmpty {
-                            Text("CUSTOM LISTS")
-                                .font(.caption.bold())
-                                .foregroundStyle(colors.secondaryText)
-                                .padding(.top, 4)
-                            ForEach(customLists) { list in listControl(list) }
-                        }
-                    }
-
-                    Link(destination: card.sourceUrl) {
-                        Label("View on official Japanese card list", systemImage: "arrow.up.right.square")
-                            .font(.subheadline.weight(.semibold))
-                    }
+                Link(destination: card.sourceUrl) {
+                    Label("View on official Japanese card list", systemImage: "arrow.up.right.square")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(16)
+                        .background(colors.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                 }
                 .padding(.horizontal)
             }
             .padding(.vertical)
         }
+        .contentMargins(.bottom, 100, for: .scrollContent)
         .background(colors.background)
         .tint(colors.accent)
         .navigationBarTitleDisplayMode(.inline)
@@ -93,6 +57,104 @@ struct CardDetailView: View {
 
     private var detailTags: [String] {
         card.allColors + [card.bloomLevel].filter { !$0.isEmpty } + card.tags
+    }
+
+    private var identitySection: some View {
+        let colors = themeStore.colors(for: colorScheme)
+        let rarityStyle = RarityBadgeStyle(rarity: card.rarity, fallback: colors.accent)
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(card.type)
+                    .font(.caption.bold())
+                    .foregroundStyle(colors.accent)
+                    .textCase(.uppercase)
+                Spacer()
+                if !card.rarity.isEmpty {
+                    Text(card.rarity)
+                        .font(.caption.bold())
+                        .foregroundStyle(rarityStyle.foreground)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 5)
+                        .background(rarityStyle.background, in: Capsule())
+                }
+            }
+            Text(card.name).font(.title.bold()).foregroundStyle(colors.primaryText)
+            if let englishName = card.displayEnglishName, englishName != card.name {
+                Text(englishName).font(.title3.weight(.semibold)).foregroundStyle(colors.secondaryText)
+            }
+            Text(card.number.uppercased())
+                .font(.subheadline.bold().monospaced())
+                .foregroundStyle(colors.secondaryText)
+
+            if !detailTags.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack {
+                        ForEach(detailTags, id: \.self) {
+                            Text($0)
+                                .font(.caption)
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 6)
+                                .background(colors.background, in: Capsule())
+                        }
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(colors.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .padding(.horizontal)
+    }
+
+    private var listSection: some View {
+        let colors = themeStore.colors(for: colorScheme)
+        let customLists = lists.filter { $0.builtInKind == nil }
+        return VStack(alignment: .leading, spacing: 12) {
+            Label("Save This Card", systemImage: "plus.square.on.square")
+                .font(.headline)
+                .foregroundStyle(colors.primaryText)
+            HStack(spacing: 12) {
+                if let wishlist = lists.first(where: { $0.builtInKind == .wishlist }) {
+                    builtInListButton(wishlist, color: colors.accent)
+                }
+                if let collection = lists.first(where: { $0.builtInKind == .collection }) {
+                    builtInListButton(collection, color: colors.secondaryAccent)
+                }
+            }
+
+            if let collection = lists.first(where: { $0.builtInKind == .collection }),
+               let item = collection.items.first(where: { $0.cardID == card.id }) {
+                collectionControls(item: item, list: collection)
+            }
+
+            if !customLists.isEmpty {
+                Text("CUSTOM LISTS")
+                    .font(.caption.bold())
+                    .foregroundStyle(colors.secondaryText)
+                    .padding(.top, 4)
+                ForEach(customLists) { list in listControl(list) }
+            }
+        }
+        .padding(16)
+        .background(colors.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .padding(.horizontal)
+    }
+
+    @ViewBuilder
+    private var setsSection: some View {
+        if !card.allSets.isEmpty {
+            let colors = themeStore.colors(for: colorScheme)
+            VStack(alignment: .leading, spacing: 7) {
+                Label("Included In", systemImage: "shippingbox")
+                    .font(.headline)
+                    .foregroundStyle(colors.primaryText)
+                ForEach(card.allEnglishSets, id: \.self) { Text($0).font(.subheadline.bold()) }
+                ForEach(card.allSets, id: \.self) { Text($0).font(.caption).foregroundStyle(colors.secondaryText) }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+            .background(colors.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .padding(.horizontal)
+        }
     }
 
     @ViewBuilder

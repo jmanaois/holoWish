@@ -35,6 +35,7 @@ struct ListsView: View {
                 }
             }
             .scrollContentBackground(.hidden)
+            .contentMargins(.bottom, 100, for: .scrollContent)
             .background(colors.background)
             .navigationTitle("My Lists")
             .toolbar { Button { showingNewList = true } label: { Image(systemName: "plus") }.accessibilityLabel("New list") }
@@ -65,6 +66,12 @@ struct ListDetailView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \CollectionValueSnapshot.recordedAt) private var allValueSnapshots: [CollectionValueSnapshot]
+    @Query(sort: \CardList.createdAt) private var lists: [CardList]
+
+    private var wishlist: CardList? { lists.first { $0.builtInKind == .wishlist } }
+    private var collection: CardList? { lists.first { $0.builtInKind == .collection } }
+    private var wishlistIDs: Set<Int> { Set(wishlist?.items.map(\.cardID) ?? []) }
+    private var collectionIDs: Set<Int> { Set(collection?.items.map(\.cardID) ?? []) }
 
     private var valueSnapshots: [CollectionValueSnapshot] {
         allValueSnapshots.filter { $0.listID == list.id }
@@ -92,10 +99,29 @@ struct ListDetailView: View {
                                 }
                                 .buttonStyle(.plain)
                                 .contextMenu {
-                                    Button(role: .destructive) {
-                                        remove(item)
-                                    } label: {
-                                        Label("Remove from \(list.name)", systemImage: "trash")
+                                    if let wishlist {
+                                        let isIncluded = wishlist.contains(cardID: card.id)
+                                        Button(role: isIncluded ? .destructive : nil) {
+                                            wishlist.toggleMembership(cardID: card.id, in: modelContext)
+                                        } label: {
+                                            Label(isIncluded ? "Remove from Wishlist" : "Add to Wishlist", systemImage: isIncluded ? "heart.slash" : "heart")
+                                        }
+                                    }
+                                    if let collection {
+                                        let isIncluded = collection.contains(cardID: card.id)
+                                        Button(role: isIncluded ? .destructive : nil) {
+                                            collection.toggleMembership(cardID: card.id, in: modelContext)
+                                        } label: {
+                                            Label(isIncluded ? "Remove from Collection" : "Add to Collection", systemImage: isIncluded ? "minus.circle" : "plus.circle")
+                                        }
+                                    }
+                                    if list.builtInKind == nil {
+                                        Divider()
+                                        Button(role: .destructive) {
+                                            remove(item)
+                                        } label: {
+                                            Label("Remove from \(list.name)", systemImage: "trash")
+                                        }
                                     }
                                 }
                             }
@@ -104,6 +130,7 @@ struct ListDetailView: View {
                     }
                     .padding(.vertical)
                 }
+                .contentMargins(.bottom, 100, for: .scrollContent)
             }
         }
         .background(colors.background)
@@ -189,7 +216,11 @@ struct ListDetailView: View {
     private func listCard(item: CardListItem, card: Card) -> some View {
         let colors = themeStore.colors(for: colorScheme)
         return VStack(alignment: .leading, spacing: 8) {
-            CardTile(card: card)
+            CardTile(
+                card: card,
+                isWishlisted: wishlistIDs.contains(card.id),
+                isCollected: collectionIDs.contains(card.id)
+            )
             if list.tracksPurchases {
                 HStack(spacing: 6) {
                     Text(item.purchasePrice.map { "Paid \($0.formatted(.currency(code: "JPY")))" } ?? "No purchase price")

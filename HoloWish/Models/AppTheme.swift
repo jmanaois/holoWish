@@ -113,6 +113,12 @@ enum QuickAddBehavior: String, CaseIterable, Identifiable {
     case askForDetails = "Ask for Purchase Details"
 
     var id: String { rawValue }
+    var displayName: String {
+        switch self {
+        case .addImmediately: "Immediately"
+        case .askForDetails: "Ask for Details"
+        }
+    }
 }
 
 @MainActor

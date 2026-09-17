@@ -106,11 +106,12 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Picker("Quick add to Collection", selection: $appSettings.quickAddBehavior) {
+                    Picker("Quick Add", selection: $appSettings.quickAddBehavior) {
                         ForEach(QuickAddBehavior.allCases) { behavior in
-                            Text(behavior.rawValue).tag(behavior)
+                            Text(behavior.displayName).tag(behavior)
                         }
                     }
+                    .pickerStyle(.navigationLink)
                 } header: {
                     Text("Collection")
                 } footer: {

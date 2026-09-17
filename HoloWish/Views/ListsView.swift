@@ -61,6 +61,7 @@ struct ListsView: View {
 
 struct ListDetailView: View {
     let list: CardList
+    let titleOverride: String?
     @Environment(CardCatalog.self) private var catalog
     @Environment(ThemeStore.self) private var themeStore
     @Environment(AppSettings.self) private var appSettings
@@ -69,6 +70,11 @@ struct ListDetailView: View {
     @Query(sort: \CollectionValueSnapshot.recordedAt) private var allValueSnapshots: [CollectionValueSnapshot]
     @Query(sort: \CardList.createdAt) private var lists: [CardList]
     @State private var purchaseCard: Card?
+
+    init(list: CardList, titleOverride: String? = nil) {
+        self.list = list
+        self.titleOverride = titleOverride
+    }
 
     private var wishlist: CardList? { lists.first { $0.builtInKind == .wishlist } }
     private var collection: CardList? { lists.first { $0.builtInKind == .collection } }
@@ -87,7 +93,7 @@ struct ListDetailView: View {
         let colors = themeStore.colors(for: colorScheme)
         Group {
             if list.items.isEmpty {
-                ContentUnavailableView("No cards yet", systemImage: "rectangle.stack.badge.plus", description: Text("Add cards from the Cards tab."))
+                ContentUnavailableView("No cards yet", systemImage: "rectangle.stack.badge.plus", description: Text("Add cards from the Search tab."))
                     .foregroundStyle(colors.primaryText)
             } else {
                 ScrollView {
@@ -141,7 +147,7 @@ struct ListDetailView: View {
         }
         .background(colors.background)
         .tint(colors.accent)
-        .navigationTitle(list.name)
+        .navigationTitle(titleOverride ?? list.name)
         .task { ensureValueHistory() }
         .sheet(item: $purchaseCard) { card in
             if let collection { PurchaseEditorView(card: card, list: collection) }

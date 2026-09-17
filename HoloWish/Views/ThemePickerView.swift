@@ -96,7 +96,17 @@ struct SettingsView: View {
                     }
                     .foregroundStyle(colors.primaryText)
 
-                    Picker("Appearance", selection: $appSettings.appearance) {
+                    Picker(
+                        "Appearance",
+                        selection: Binding(
+                            get: { appSettings.appearance },
+                            set: { appearance in
+                                withAnimation(.easeInOut(duration: 0.28)) {
+                                    appSettings.appearance = appearance
+                                }
+                            }
+                        )
+                    ) {
                         ForEach(AppAppearance.allCases) { appearance in
                             Text(appearance.rawValue).tag(appearance)
                         }
@@ -186,9 +196,10 @@ struct SettingsView: View {
                     .padding(.vertical, 4)
                 }
             }
-            .id("\(themeStore.selected.id)-\(appSettings.appearance.id)")
+            .id(themeStore.selected)
             .scrollContentBackground(.hidden)
             .background(colors.background)
+            .animation(.easeInOut(duration: 0.28), value: appSettings.appearance)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(colors.background, for: .navigationBar)

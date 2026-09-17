@@ -42,9 +42,9 @@ final class CardCatalog {
             if FileManager.default.fileExists(atPath: localCatalogURL.path),
                let localPayload = try? await Self.readCatalog(from: localCatalogURL),
                localPayload.syncedAt >= bundledPayload.syncedAt {
-                apply(localPayload)
+                await apply(localPayload)
             } else {
-                apply(bundledPayload)
+                await apply(bundledPayload)
                 try? await Self.copyCatalog(from: bundledURL, to: localCatalogURL)
             }
         } catch {
@@ -91,7 +91,7 @@ final class CardCatalog {
 
             let previousCount = cards.count
             try await Self.saveCatalog(data, to: localCatalogURL)
-            apply(payload)
+            await apply(payload)
             if let eTag = http.value(forHTTPHeaderField: "ETag") { defaults.set(eTag, forKey: Self.eTagKey) }
             let added = max(0, payload.cards.count - previousCount)
             updateMessage = added > 0 ? "Catalog updated with \(added) new cards." : "Catalog updated."
@@ -110,42 +110,67 @@ final class CardCatalog {
         return base.appending(path: "HoloWish", directoryHint: .isDirectory).appending(path: "cards.json")
     }
 
-    private func apply(_ payload: CardCatalogPayload) {
-        let loadedCards = payload.cards
-        cards = loadedCards
-        cardsByID = Dictionary(uniqueKeysWithValues: loadedCards.map { ($0.id, $0) })
-        searchIndex = Dictionary(uniqueKeysWithValues: loadedCards.map { ($0.id, $0.searchableText) })
-        rarities = values(\.rarity, in: loadedCards)
-        types = values(\.type, in: loadedCards)
-        bloomLevels = values(\.bloomLevel, in: loadedCards)
-        colors = sorted(Array(Set(loadedCards.flatMap(\.allColors))))
-        sets = sorted(Array(Set(loadedCards.flatMap(\.allSets))))
-        var cardsBySet: [String: Set<Int>] = [:]
-        let productByName = Dictionary(uniqueKeysWithValues: (payload.products ?? []).map { ($0.name, $0) })
-        let productOrderByName = Dictionary(uniqueKeysWithValues: (payload.products ?? []).enumerated().map { ($0.element.name, $0.offset) })
-        for card in loadedCards {
-            for setName in card.allSets {
-                cardsBySet[setName, default: []].insert(card.id)
-            }
-        }
-        setSummaries = cardsBySet.map { name, ids in
-            let product = productByName[name]
-            return CardSetSummary(
-                name: name,
-                englishName: product?.englishName?.isEmpty == false ? product?.englishName : nil,
-                cardIDs: ids.sorted(),
-                productCode: product?.code,
-                productImage: product?.image,
-                category: product?.category,
-                sortOrder: productOrderByName[name] ?? .max
-            )
-        }.sorted {
-            if $0.group != $1.group { return $0.group.sortOrder < $1.group.sortOrder }
-            if $0.sortOrder != $1.sortOrder { return $0.sortOrder < $1.sortOrder }
-            return $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending
-        }
+    private func apply(_ payload: CardCatalogPayload) async {
+        let prepared = await Self.prepare(payload)
+        cards = prepared.cards
+        cardsByID = prepared.cardsByID
+        searchIndex = prepared.searchIndex
+        rarities = prepared.rarities
+        types = prepared.types
+        bloomLevels = prepared.bloomLevels
+        colors = prepared.colors
+        sets = prepared.sets
+        setSummaries = prepared.setSummaries
         syncedAt = payload.syncedAt
         errorMessage = nil
+    }
+
+    nonisolated private static func prepare(_ payload: CardCatalogPayload) async -> PreparedCatalog {
+        await Task.detached(priority: .userInitiated) {
+            let loadedCards = payload.cards
+            let sort: ([String]) -> [String] = {
+                $0.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+            }
+            let values: (KeyPath<Card, String>) -> [String] = { keyPath in
+                sort(Array(Set(loadedCards.map { $0[keyPath: keyPath] }.filter { !$0.isEmpty })))
+            }
+            var cardsBySet: [String: Set<Int>] = [:]
+            let products = payload.products ?? []
+            let productByName = Dictionary(uniqueKeysWithValues: products.map { ($0.name, $0) })
+            let productOrderByName = Dictionary(uniqueKeysWithValues: products.enumerated().map { ($0.element.name, $0.offset) })
+            for card in loadedCards {
+                for setName in card.allSets {
+                    cardsBySet[setName, default: []].insert(card.id)
+                }
+            }
+            let setSummaries = cardsBySet.map { name, ids in
+                let product = productByName[name]
+                return CardSetSummary(
+                    name: name,
+                    englishName: product?.englishName?.isEmpty == false ? product?.englishName : nil,
+                    cardIDs: ids.sorted(),
+                    productCode: product?.code,
+                    productImage: product?.image,
+                    category: product?.category,
+                    sortOrder: productOrderByName[name] ?? .max
+                )
+            }.sorted {
+                if $0.group != $1.group { return $0.group.sortOrder < $1.group.sortOrder }
+                if $0.sortOrder != $1.sortOrder { return $0.sortOrder < $1.sortOrder }
+                return $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending
+            }
+            return PreparedCatalog(
+                cards: loadedCards,
+                cardsByID: Dictionary(uniqueKeysWithValues: loadedCards.map { ($0.id, $0) }),
+                searchIndex: Dictionary(uniqueKeysWithValues: loadedCards.map { ($0.id, $0.searchableText) }),
+                rarities: values(\.rarity),
+                types: values(\.type),
+                bloomLevels: values(\.bloomLevel),
+                colors: sort(Array(Set(loadedCards.flatMap(\.allColors)))),
+                sets: sort(Array(Set(loadedCards.flatMap(\.allSets)))),
+                setSummaries: setSummaries
+            )
+        }.value
     }
 
     nonisolated private static func readCatalog(from url: URL) async throws -> CardCatalogPayload {
@@ -172,13 +197,18 @@ final class CardCatalog {
         }.value
     }
 
-    private func values(_ keyPath: KeyPath<Card, String>, in cards: [Card]) -> [String] {
-        sorted(Array(Set(cards.map { $0[keyPath: keyPath] }.filter { !$0.isEmpty })))
-    }
+}
 
-    private func sorted(_ values: [String]) -> [String] {
-        values.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
-    }
+private struct PreparedCatalog: Sendable {
+    let cards: [Card]
+    let cardsByID: [Int: Card]
+    let searchIndex: [Int: String]
+    let rarities: [String]
+    let types: [String]
+    let bloomLevels: [String]
+    let colors: [String]
+    let sets: [String]
+    let setSummaries: [CardSetSummary]
 }
 
 struct CardSetSummary: Identifiable, Hashable, Sendable {

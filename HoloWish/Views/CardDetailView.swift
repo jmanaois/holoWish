@@ -48,9 +48,30 @@ struct CardDetailView: View {
                         }
                     }
 
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("MY LISTS").font(.caption.bold()).foregroundStyle(.secondary).padding(.bottom, 8)
-                        ForEach(lists) { list in listControl(list) }
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("MY LISTS").font(.caption.bold()).foregroundStyle(colors.secondaryText)
+                        HStack(spacing: 12) {
+                            if let wishlist = lists.first(where: { $0.builtInKind == .wishlist }) {
+                                builtInListButton(wishlist, color: colors.accent)
+                            }
+                            if let collection = lists.first(where: { $0.builtInKind == .collection }) {
+                                builtInListButton(collection, color: colors.secondaryAccent)
+                            }
+                        }
+
+                        if let collection = lists.first(where: { $0.builtInKind == .collection }),
+                           let item = collection.items.first(where: { $0.cardID == card.id }) {
+                            collectionControls(item: item, list: collection)
+                        }
+
+                        let customLists = lists.filter { $0.builtInKind == nil }
+                        if !customLists.isEmpty {
+                            Text("CUSTOM LISTS")
+                                .font(.caption.bold())
+                                .foregroundStyle(colors.secondaryText)
+                                .padding(.top, 4)
+                            ForEach(customLists) { list in listControl(list) }
+                        }
                     }
 
                     Link(destination: card.sourceUrl) {
@@ -158,6 +179,65 @@ struct CardDetailView: View {
             }
             .font(.caption)
         }
+        .padding(12)
+        .background(colors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private func builtInListButton(_ list: CardList, color: Color) -> some View {
+        let colors = themeStore.colors(for: colorScheme)
+        let item = list.items.first { $0.cardID == card.id }
+        let isAdded = item != nil
+        let title = switch list.builtInKind {
+        case .wishlist: isAdded ? "In Wishlist" : "Add to Wishlist"
+        case .collection: isAdded ? "In Collection" : "Add to Collection"
+        case nil: list.name
+        }
+
+        return Button { toggle(cardIn: list, item: item) } label: {
+            Label(title, systemImage: isAdded ? "checkmark" : "plus")
+                .font(.subheadline.bold())
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+                .frame(maxWidth: .infinity, minHeight: 48)
+                .padding(.horizontal, 8)
+                .foregroundStyle(isAdded ? colors.background : color)
+                .background(isAdded ? color : colors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(color.opacity(isAdded ? 0 : 0.5), lineWidth: 1)
+                }
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint(isAdded ? "Removes this card from \(list.name)" : "Adds this card to \(list.name)")
+    }
+
+    private func collectionControls(item: CardListItem, list: CardList) -> some View {
+        let colors = themeStore.colors(for: colorScheme)
+        return HStack(spacing: 10) {
+            Button { changeQuantity(of: item, in: list, by: -1) } label: {
+                Image(systemName: "minus.circle.fill")
+            }
+            .accessibilityLabel("Decrease quantity")
+            Text(item.quantity.formatted())
+                .font(.subheadline.bold().monospacedDigit())
+                .frame(minWidth: 24)
+            Button { changeQuantity(of: item, in: list, by: 1) } label: {
+                Image(systemName: "plus.circle.fill")
+            }
+            .accessibilityLabel("Increase quantity")
+
+            Spacer()
+
+            Button { purchaseList = list } label: {
+                if let price = item.purchasePrice {
+                    Label(price.formatted(.currency(code: "JPY")), systemImage: "pencil")
+                } else {
+                    Label("Add price", systemImage: "pencil")
+                }
+            }
+            .font(.caption.bold())
+        }
+        .foregroundStyle(colors.accent)
         .padding(12)
         .background(colors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }

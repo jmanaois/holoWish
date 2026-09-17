@@ -86,6 +86,62 @@ final class ThemeStore {
     func colors(for scheme: ColorScheme) -> ThemeColors { selected.colors(for: scheme) }
 }
 
+enum AppAppearance: String, CaseIterable, Identifiable {
+    case system = "System"
+    case light = "Light"
+    case dark = "Dark"
+
+    var id: String { rawValue }
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: nil
+        case .light: .light
+        case .dark: .dark
+        }
+    }
+}
+
+enum CardNamePreference: String, CaseIterable, Identifiable {
+    case japaneseFirst = "Japanese First"
+    case englishFirst = "English First"
+
+    var id: String { rawValue }
+}
+
+enum QuickAddBehavior: String, CaseIterable, Identifiable {
+    case addImmediately = "Add Immediately"
+    case askForDetails = "Ask for Purchase Details"
+
+    var id: String { rawValue }
+}
+
+@MainActor
+@Observable
+final class AppSettings {
+    private enum Key {
+        static let appearance = "settings.appearance"
+        static let cardNamePreference = "settings.cardNamePreference"
+        static let quickAddBehavior = "settings.quickAddBehavior"
+    }
+
+    var appearance: AppAppearance {
+        didSet { UserDefaults.standard.set(appearance.rawValue, forKey: Key.appearance) }
+    }
+    var cardNamePreference: CardNamePreference {
+        didSet { UserDefaults.standard.set(cardNamePreference.rawValue, forKey: Key.cardNamePreference) }
+    }
+    var quickAddBehavior: QuickAddBehavior {
+        didSet { UserDefaults.standard.set(quickAddBehavior.rawValue, forKey: Key.quickAddBehavior) }
+    }
+
+    init() {
+        let defaults = UserDefaults.standard
+        appearance = defaults.string(forKey: Key.appearance).flatMap(AppAppearance.init(rawValue:)) ?? .system
+        cardNamePreference = defaults.string(forKey: Key.cardNamePreference).flatMap(CardNamePreference.init(rawValue:)) ?? .japaneseFirst
+        quickAddBehavior = defaults.string(forKey: Key.quickAddBehavior).flatMap(QuickAddBehavior.init(rawValue:)) ?? .addImmediately
+    }
+}
+
 private extension Color {
     init(hex: UInt32) {
         self.init(

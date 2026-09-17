@@ -12,6 +12,7 @@ struct CardTile: View {
     let isWishlisted: Bool
     let isCollected: Bool
     @Environment(ThemeStore.self) private var themeStore
+    @Environment(AppSettings.self) private var appSettings
     @Environment(\.colorScheme) private var colorScheme
 
     init(card: Card, isWishlisted: Bool = false, isCollected: Bool = false) {
@@ -78,7 +79,7 @@ struct CardTile: View {
             .foregroundStyle(colors.secondaryText)
             .frame(height: 15)
 
-            Text(card.name)
+            Text(card.primaryName(for: appSettings.cardNamePreference))
                 .font(.subheadline.bold())
                 .foregroundStyle(colors.primaryText)
                 .lineLimit(1)
@@ -95,8 +96,7 @@ struct CardTile: View {
     }
 
     private var englishSubtitle: String {
-        guard let englishName = card.displayEnglishName, englishName != card.name else { return "" }
-        return englishName
+        card.secondaryName(for: appSettings.cardNamePreference) ?? ""
     }
 }
 
@@ -160,6 +160,8 @@ struct CardQuickActionsModifier: ViewModifier {
     let wishlist: CardList?
     let collection: CardList?
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppSettings.self) private var appSettings
+    @State private var purchaseList: CardList?
 
     func body(content: Content) -> some View {
         content.contextMenu {
@@ -178,7 +180,11 @@ struct CardQuickActionsModifier: ViewModifier {
             if let collection {
                 let isIncluded = collection.contains(cardID: card.id)
                 Button(role: isIncluded ? .destructive : nil) {
-                    collection.toggleMembership(cardID: card.id, in: modelContext)
+                    if !isIncluded && appSettings.quickAddBehavior == .askForDetails {
+                        purchaseList = collection
+                    } else {
+                        collection.toggleMembership(cardID: card.id, in: modelContext)
+                    }
                 } label: {
                     Label(
                         isIncluded ? "Remove from Collection" : "Add to Collection",
@@ -186,6 +192,9 @@ struct CardQuickActionsModifier: ViewModifier {
                     )
                 }
             }
+        }
+        .sheet(item: $purchaseList) { list in
+            PurchaseEditorView(card: card, list: list)
         }
     }
 }

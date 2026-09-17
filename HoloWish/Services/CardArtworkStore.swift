@@ -44,6 +44,15 @@ final class CardArtworkStore {
         isDownloading = false
     }
 
+    func clearDownloadedArtwork() async {
+        pauseDownloading()
+        memoryCache.removeAllObjects()
+        productMemoryCache.removeAllObjects()
+        await Self.removeDownloadedArtwork()
+        downloadedCount = 0
+        failedCount = 0
+    }
+
     func image(for card: Card) async -> UIImage? {
         let key = NSNumber(value: card.id)
         if let cached = memoryCache.object(forKey: key) { return cached }
@@ -184,6 +193,17 @@ final class CardArtworkStore {
         let remoteName = set.productImage?.lastPathComponent ?? "product.png"
         let key = set.productCode ?? set.name.replacingOccurrences(of: "/", with: "-")
         return base.appending(path: "\(key)-\(remoteName)")
+    }
+
+    nonisolated private static func removeDownloadedArtwork() async {
+        await Task.detached(priority: .utility) {
+            let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+                .appending(path: "HoloWish", directoryHint: .isDirectory)
+            for folder in ["Artwork", "ProductArtwork"] {
+                let url = base.appending(path: folder, directoryHint: .isDirectory)
+                try? FileManager.default.removeItem(at: url)
+            }
+        }.value
     }
 }
 

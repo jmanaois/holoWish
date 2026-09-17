@@ -5,13 +5,12 @@ import SwiftUI
 struct DashboardView: View {
     let openSearch: () -> Void
     let openLists: () -> Void
-    @Environment(CardArtworkStore.self) private var artwork
     @Environment(CardCatalog.self) private var catalog
     @Environment(ThemeStore.self) private var themeStore
     @Environment(\.colorScheme) private var colorScheme
     @Query(sort: \CardList.createdAt) private var lists: [CardList]
     @Query(sort: \CollectionValueSnapshot.recordedAt) private var allValueSnapshots: [CollectionValueSnapshot]
-    @State private var showingThemes = false
+    @State private var showingSettings = false
 
     private var wishlist: CardList? { lists.first { $0.builtInKind == .wishlist } }
     private var collection: CardList? { lists.first { $0.builtInKind == .collection } }
@@ -117,30 +116,6 @@ struct DashboardView: View {
                         }
                     }
 
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack {
-                            Label("Offline artwork", systemImage: "arrow.down.circle.fill")
-                                .font(.headline)
-                            Spacer()
-                            Text("\(artwork.downloadedCount) / \(artwork.totalCount)")
-                                .font(.subheadline.monospacedDigit()).foregroundStyle(colors.secondaryText)
-                        }
-                        ProgressView(value: artwork.progress).tint(colors.accent)
-                        HStack {
-                            Text(artwork.isDownloading ? "Downloading gently in the background…" : artwork.downloadedCount < artwork.totalCount ? "Artwork download is paused." : "Artwork is available offline.")
-                                .font(.caption).foregroundStyle(colors.secondaryText)
-                            Spacer()
-                            if artwork.downloadedCount < artwork.totalCount {
-                                Button(artwork.isDownloading ? "Pause" : "Resume") {
-                                    if artwork.isDownloading { artwork.pauseDownloading() }
-                                    else { artwork.beginDownloading(catalog.cards) }
-                                }
-                                .font(.caption.bold())
-                            }
-                        }
-                    }
-                    .padding(18)
-                    .background(colors.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
                 }
                 .padding()
             }
@@ -148,11 +123,11 @@ struct DashboardView: View {
             .background(colors.background)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { showingThemes = true } label: { Image(systemName: "paintpalette.fill") }
-                        .accessibilityLabel("Choose theme")
+                    Button { showingSettings = true } label: { Image(systemName: "gearshape.fill") }
+                        .accessibilityLabel("Settings")
                 }
             }
-            .sheet(isPresented: $showingThemes) { ThemePickerView() }
+            .sheet(isPresented: $showingSettings) { SettingsView() }
             .tint(colors.accent)
         }
     }
@@ -297,6 +272,7 @@ private struct ClosestSetCard: View {
 private struct RecentCardTile: View {
     let card: Card
     @Environment(ThemeStore.self) private var themeStore
+    @Environment(AppSettings.self) private var appSettings
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -305,7 +281,7 @@ private struct RecentCardTile: View {
             CachedCardImage(card: card, contentMode: .fill)
                 .frame(width: 104, height: 146)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            Text(card.displayEnglishName ?? card.name)
+            Text(card.primaryName(for: appSettings.cardNamePreference))
                 .font(.caption.bold())
                 .foregroundStyle(colors.primaryText)
                 .lineLimit(1)

@@ -63,10 +63,12 @@ struct ListDetailView: View {
     let list: CardList
     @Environment(CardCatalog.self) private var catalog
     @Environment(ThemeStore.self) private var themeStore
+    @Environment(AppSettings.self) private var appSettings
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \CollectionValueSnapshot.recordedAt) private var allValueSnapshots: [CollectionValueSnapshot]
     @Query(sort: \CardList.createdAt) private var lists: [CardList]
+    @State private var purchaseCard: Card?
 
     private var wishlist: CardList? { lists.first { $0.builtInKind == .wishlist } }
     private var collection: CardList? { lists.first { $0.builtInKind == .collection } }
@@ -110,7 +112,11 @@ struct ListDetailView: View {
                                     if let collection {
                                         let isIncluded = collection.contains(cardID: card.id)
                                         Button(role: isIncluded ? .destructive : nil) {
-                                            collection.toggleMembership(cardID: card.id, in: modelContext)
+                                            if !isIncluded && appSettings.quickAddBehavior == .askForDetails {
+                                                purchaseCard = card
+                                            } else {
+                                                collection.toggleMembership(cardID: card.id, in: modelContext)
+                                            }
                                         } label: {
                                             Label(isIncluded ? "Remove from Collection" : "Add to Collection", systemImage: isIncluded ? "minus.circle" : "plus.circle")
                                         }
@@ -137,6 +143,9 @@ struct ListDetailView: View {
         .tint(colors.accent)
         .navigationTitle(list.name)
         .task { ensureValueHistory() }
+        .sheet(item: $purchaseCard) { card in
+            if let collection { PurchaseEditorView(card: card, list: collection) }
+        }
     }
 
     private var valueHistory: some View {

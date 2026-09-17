@@ -5,6 +5,7 @@ struct CardDetailView: View {
     let card: Card
     @Environment(\.modelContext) private var modelContext
     @Environment(ThemeStore.self) private var themeStore
+    @Environment(AppSettings.self) private var appSettings
     @Environment(CardPriceStore.self) private var prices
     @Environment(\.colorScheme) private var colorScheme
     @Query(sort: \CardList.createdAt) private var lists: [CardList]
@@ -78,9 +79,11 @@ struct CardDetailView: View {
                         .background(rarityStyle.background, in: Capsule())
                 }
             }
-            Text(card.name).font(.title.bold()).foregroundStyle(colors.primaryText)
-            if let englishName = card.displayEnglishName, englishName != card.name {
-                Text(englishName).font(.title3.weight(.semibold)).foregroundStyle(colors.secondaryText)
+            Text(card.primaryName(for: appSettings.cardNamePreference))
+                .font(.title.bold())
+                .foregroundStyle(colors.primaryText)
+            if let secondaryName = card.secondaryName(for: appSettings.cardNamePreference) {
+                Text(secondaryName).font(.title3.weight(.semibold)).foregroundStyle(colors.secondaryText)
             }
             Text(card.number.uppercased())
                 .font(.subheadline.bold().monospaced())
@@ -365,6 +368,7 @@ struct PurchaseEditorView: View {
     let card: Card
     let list: CardList
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppSettings.self) private var appSettings
     @Environment(\.dismiss) private var dismiss
     @State private var amount = ""
     @State private var quantity = 1
@@ -383,7 +387,10 @@ struct PurchaseEditorView: View {
         NavigationStack {
             Form {
                 Section {
-                    Text(card.name).font(.headline)
+                    Text(card.primaryName(for: appSettings.cardNamePreference)).font(.headline)
+                    if let secondaryName = card.secondaryName(for: appSettings.cardNamePreference) {
+                        Text(secondaryName).font(.subheadline).foregroundStyle(.secondary)
+                    }
                     Text("\(card.number) · \(card.rarity)").foregroundStyle(.secondary)
                     Stepper("Quantity: \(quantity)", value: $quantity, in: 1...999_999)
                 }

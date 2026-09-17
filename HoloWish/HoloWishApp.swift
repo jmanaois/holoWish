@@ -18,6 +18,7 @@ struct HoloWishApp: App {
     @State private var artwork = CardArtworkStore()
     @State private var prices = CardPriceStore()
     @State private var themeStore = ThemeStore()
+    @State private var appSettings = AppSettings()
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
@@ -27,6 +28,8 @@ struct HoloWishApp: App {
                 .environment(artwork)
                 .environment(prices)
                 .environment(themeStore)
+                .environment(appSettings)
+                .preferredColorScheme(appSettings.appearance.colorScheme)
                 .task {
                     await catalog.start()
                     artwork.beginDownloading(catalog.cards)

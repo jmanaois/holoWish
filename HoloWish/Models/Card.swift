@@ -41,6 +41,13 @@ struct Card: Decodable, Identifiable, Hashable, Sendable {
     var allSets: [String] { sets?.isEmpty == false ? sets! : [set].filter { !$0.isEmpty } }
     var allEnglishSets: [String] { englishSets ?? [] }
     var displayEnglishName: String? { englishName?.isEmpty == false ? englishName : nil }
+    func primaryName(for preference: CardNamePreference) -> String {
+        preference == .englishFirst ? (displayEnglishName ?? name) : name
+    }
+    func secondaryName(for preference: CardNamePreference) -> String? {
+        guard let englishName = displayEnglishName, englishName != name else { return nil }
+        return preference == .englishFirst ? name : englishName
+    }
     var searchableText: String {
         ([name, englishName ?? "", number] + tags + allSets + allEnglishSets)
             .joined(separator: " ").localizedLowercase

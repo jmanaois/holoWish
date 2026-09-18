@@ -65,7 +65,7 @@ Before releasing, build in Xcode and verify on a simulator/device: upgrade an ex
 
 ## Theme palettes
 
-Choose a theme from Settings. The picker uses square portraits from the [official talent directory](https://hololive.hololivepro.com/en/talents/) and is searchable by English or Japanese name. Themes are grouped into hololive, Indonesia, English, DEV_IS, holoAN, and Alumni & Staff.
+Choose a theme from Settings. The picker uses square portraits from the [official talent directory](https://hololive.hololivepro.com/en/talents/) and is searchable by English or Japanese name. Themes are grouped into hololive, Indonesia, English, DEV_IS, ASOBI★MAWARI-TAI!, holoAN, and Alumni & Staff.
 
 Each palette starts with two prominent colors extracted from its portrait. Light and dark surfaces are generated from those colors, and primary text, secondary text, and both accents maintain at least 4.5:1 calculated contrast against their background and surface colors. Dashboard icons use the background color against accent fills so they remain legible in both appearances. These are UI adaptations rather than official brand color specifications.
 

@@ -54,6 +54,15 @@ struct DashboardView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Oshi Hub")
+                            .font(.largeTitle.bold())
+                            .foregroundStyle(colors.primaryText)
+                        Text("Your selected talent, looks, and card progress")
+                            .font(.subheadline)
+                            .foregroundStyle(colors.secondaryText)
+                    }
+
                     TalentSpotlightHero(
                         theme: themeStore.selected,
                         cardCount: selectedTalentCards.count,
@@ -235,10 +244,6 @@ private struct TalentSpotlightHero: View {
             LinearGradient(colors: [.black.opacity(0.05), .black.opacity(0.68)], startPoint: .top, endPoint: .bottom)
 
             VStack(alignment: .leading, spacing: 7) {
-                Text("holoWish")
-                    .font(.caption.bold())
-                    .textCase(.uppercase)
-                    .tracking(1.2)
                 Spacer()
                 Text(theme.rawValue)
                     .font(.title2.bold())
@@ -249,34 +254,34 @@ private struct TalentSpotlightHero: View {
                 Text(cardCount == 0 ? "No matched cards yet" : "\(collectedCount) of \(cardCount) cards collected")
                     .font(.caption)
                     .opacity(0.8)
-                HStack(spacing: 10) {
-                    Button("Showcase", action: showShowcase)
-                        .buttonStyle(.borderedProminent)
-                        .tint(.white)
-                        .foregroundStyle(.black)
-                    if artworkCount > 1 {
-                        Button(action: showNextArtwork) {
-                            Image(systemName: "photo.on.rectangle.angled")
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(.white)
-                        .accessibilityLabel("Next home outfit, look \(artworkIndex + 1) of \(artworkCount)")
-                    }
-                    NavigationLink { TalentCardBrowserView(theme: theme) } label: {
-                        Image(systemName: "rectangle.stack.fill")
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.white)
-                    .accessibilityLabel("Browse \(theme.rawValue) cards")
-                }
+                Label("Open showcase", systemImage: "chevron.right")
+                    .font(.caption.bold())
+                    .opacity(0.85)
             }
             .foregroundStyle(.white)
             .padding(18)
+
+            if artworkCount > 1 {
+                Button(action: showNextArtwork) {
+                    Image(systemName: "photo.on.rectangle.angled")
+                        .font(.headline)
+                        .padding(11)
+                        .background(.ultraThinMaterial, in: Circle())
+                }
+                .tint(.white)
+                .padding(14)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .accessibilityLabel("Next home outfit, look \(artworkIndex + 1) of \(artworkCount)")
+            }
         }
         .frame(height: 300)
         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .overlay { RoundedRectangle(cornerRadius: 28).stroke(.white.opacity(0.18), lineWidth: 1) }
         .shadow(color: colors.accent.opacity(0.2), radius: 16, y: 8)
+        .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .onTapGesture(perform: showShowcase)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction(named: "Open showcase", showShowcase)
     }
 }
 

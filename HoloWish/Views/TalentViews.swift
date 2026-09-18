@@ -36,6 +36,7 @@ struct TalentArtworkView: View {
     let theme: AppTheme
     var artworkIndex = 0
     var contentMode: ContentMode = .fit
+    var showsPortraitPlaceholder = true
     @Environment(TalentArtworkStore.self) private var artworkStore
     @State private var displayedImage: UIImage?
     @State private var displayedThemeName = ""
@@ -56,7 +57,12 @@ struct TalentArtworkView: View {
                     .resizable()
                     .aspectRatio(contentMode: contentMode)
             } else {
-                TalentPortraitView(theme: theme, cornerRadius: 0)
+                if showsPortraitPlaceholder {
+                    TalentPortraitView(theme: theme, cornerRadius: 0)
+                } else {
+                    ProgressView()
+                        .controlSize(.large)
+                }
             }
         }
         .task(id: artworkURL) {
@@ -184,6 +190,7 @@ struct TalentShowcaseView: View {
     @Environment(CardCatalog.self) private var catalog
     @Environment(ThemeStore.self) private var themeStore
     @Environment(AppSettings.self) private var appSettings
+    @Environment(TalentArtworkStore.self) private var artworkStore
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \CardList.createdAt) private var lists: [CardList]
@@ -262,7 +269,15 @@ struct TalentShowcaseView: View {
             .tint(colors.accent)
         }
         .presentationBackground(colors.background)
-        .task { selectedArtwork = appSettings.homeArtworkIndex(for: theme) }
+        .task {
+            selectedArtwork = appSettings.homeArtworkIndex(for: theme)
+            guard let urls = record?.artworkURLs, !urls.isEmpty else { return }
+            let preferredIndex = min(selectedArtwork, urls.count - 1)
+            await artworkStore.load(urls[preferredIndex])
+            for (index, url) in urls.enumerated() where index != preferredIndex {
+                await artworkStore.load(url)
+            }
+        }
     }
 
     private func artworkCarousel(colors: ThemeColors) -> some View {
@@ -270,7 +285,7 @@ struct TalentShowcaseView: View {
         return VStack(spacing: 8) {
             TabView(selection: $selectedArtwork) {
                 ForEach(0..<count, id: \.self) { index in
-                    TalentArtworkView(theme: theme, artworkIndex: index)
+                    TalentArtworkView(theme: theme, artworkIndex: index, showsPortraitPlaceholder: false)
                         .padding(.horizontal, 28)
                         .tag(index)
                 }

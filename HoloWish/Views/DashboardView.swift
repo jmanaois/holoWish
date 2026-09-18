@@ -55,19 +55,15 @@ struct DashboardView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     VStack(alignment: .leading, spacing: 5) {
-                        HStack {
-                            Text("holoWish")
-                                .font(.largeTitle.bold())
-                            Spacer()
-                            Image(systemName: "sparkles")
-                                .font(.title2.bold())
-                                .foregroundStyle(colors.accent)
-                                .accessibilityHidden(true)
-                        }
-                        .foregroundStyle(colors.primaryText)
+                        Text("holoWish")
+                            .font(.largeTitle.bold())
+                            .foregroundStyle(colors.primaryText)
 
                         Text("your hololive ocg wishlist and collection at a glance")
+                            .font(.subheadline)
                             .foregroundStyle(colors.secondaryText)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.82)
                     }
 
                     TalentSpotlightHero(
@@ -82,14 +78,24 @@ struct DashboardView: View {
 
                     if let collection {
                         VStack(alignment: .leading, spacing: 12) {
-                            Label("Collection", systemImage: "sparkles")
-                                .font(.title2.bold())
-                                .textCase(.uppercase)
-                                .tracking(0.7)
+                            HStack(spacing: 8) {
+                                Image(systemName: "sparkles")
+                                    .font(.subheadline.bold())
+                                    .foregroundStyle(colors.accent)
+                                Text("Collection")
+                                    .font(.title2.bold())
+                                    .textCase(.uppercase)
+                                    .tracking(0.6)
+                            }
                                 .foregroundStyle(colors.primaryText)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 9)
-                                .background(.ultraThinMaterial, in: Capsule())
+                                .padding(.horizontal, 13)
+                                .padding(.vertical, 7)
+                                .background {
+                                    Capsule()
+                                        .fill(.ultraThinMaterial)
+                                        .overlay { Capsule().fill(colors.accent.opacity(0.09)) }
+                                        .overlay { Capsule().stroke(colors.accent.opacity(0.22), lineWidth: 1) }
+                                }
 
                             CollectionValueCard(list: collection, snapshots: collectionSnapshots)
                             MostValuableCardsView(entries: mostValuableCards)

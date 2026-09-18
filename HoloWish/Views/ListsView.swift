@@ -22,12 +22,7 @@ struct ListsView: View {
                             Text(list.items.count.formatted()).foregroundStyle(colors.secondaryText)
                         }
                     } icon: {
-                        if let theme = list.coverTalentName.flatMap(AppTheme.init(rawValue:)) {
-                            TalentPortraitView(theme: theme, cornerRadius: 7)
-                                .frame(width: 34, height: 34)
-                        } else {
-                            Image(systemName: icon(for: list)).foregroundStyle(colors.accent)
-                        }
+                        Image(systemName: icon(for: list)).foregroundStyle(colors.accent)
                     }
                 }
                 .listRowBackground(colors.surface)
@@ -44,7 +39,7 @@ struct ListsView: View {
         .navigationTitle("My Lists")
         .toolbar { Button { showingNewList = true } label: { Image(systemName: "plus") }.accessibilityLabel("New list") }
         .alert("New List", isPresented: $showingNewList) {
-            TextField("Trade binder", text: $newListName)
+            TextField("Custom list", text: $newListName)
             Button("Cancel", role: .cancel) { newListName = "" }
             Button("Create") { createList() }.disabled(newListName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         } message: { Text("Give your custom card list a name.") }
@@ -74,7 +69,6 @@ struct ListDetailView: View {
     @Query(sort: \CollectionValueSnapshot.recordedAt) private var allValueSnapshots: [CollectionValueSnapshot]
     @Query(sort: \CardList.createdAt) private var lists: [CardList]
     @State private var purchaseCard: Card?
-    @State private var showingCoverPicker = false
 
     init(list: CardList, titleOverride: String? = nil) {
         self.list = list
@@ -163,30 +157,9 @@ struct ListDetailView: View {
         .background(colors.background)
         .tint(colors.accent)
         .navigationTitle(titleOverride ?? list.name)
-        .toolbar {
-            if list.builtInKind == nil {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showingCoverPicker = true } label: {
-                        Image(systemName: "photo.badge.plus")
-                    }
-                    .accessibilityLabel("Choose binder cover")
-                }
-            }
-        }
         .task { ensureValueHistory() }
         .sheet(item: $purchaseCard) { card in
             if let collection { PurchaseEditorView(card: card, list: collection) }
-        }
-        .sheet(isPresented: $showingCoverPicker) {
-            TalentCoverPicker(
-                selectedTalentName: Binding(
-                    get: { list.coverTalentName },
-                    set: {
-                        list.coverTalentName = $0
-                        try? modelContext.save()
-                    }
-                )
-            )
         }
     }
 

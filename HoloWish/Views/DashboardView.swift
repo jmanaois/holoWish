@@ -7,19 +7,14 @@ struct DashboardView: View {
     @Environment(ThemeStore.self) private var themeStore
     @Environment(AppSettings.self) private var appSettings
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.modelContext) private var modelContext
     @Query(sort: \CardList.createdAt) private var lists: [CardList]
     @Query(sort: \CollectionValueSnapshot.recordedAt) private var allValueSnapshots: [CollectionValueSnapshot]
     @State private var showingSettings = false
     @State private var showcaseTheme: AppTheme?
-    @State private var showingNewBinder = false
-    @State private var newBinderName = ""
-    @State private var newBinderForCover: CardList?
 
     private var wishlist: CardList? { lists.first { $0.builtInKind == .wishlist } }
     private var collection: CardList? { lists.first { $0.builtInKind == .collection } }
     private var collectionQuantity: Int { collection?.items.reduce(0) { $0 + $1.quantity } ?? 0 }
-    private var customLists: [CardList] { lists.filter { $0.builtInKind == nil } }
     private var selectedTalentCards: [Card] { catalog.cards.filter { $0.belongs(to: themeStore.selected) } }
     private var selectedTalentCollectedCount: Int {
         let cardIDs = Set(selectedTalentCards.map(\.id))
@@ -116,47 +111,6 @@ struct DashboardView: View {
                     }
                     .buttonStyle(.plain)
 
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("My Binders")
-                                .font(.title2.bold())
-                                .foregroundStyle(colors.primaryText)
-                            Spacer()
-                            if customLists.isEmpty {
-                                Button("Create") { showingNewBinder = true }
-                                    .font(.caption.bold())
-                            } else {
-                                NavigationLink("Manage") { ListsView() }
-                                    .font(.caption.bold())
-                            }
-                        }
-
-                        if customLists.isEmpty {
-                            Button { showingNewBinder = true } label: {
-                                Label("Create a binder and give it a talent cover", systemImage: "plus.rectangle.on.rectangle")
-                                    .font(.subheadline.bold())
-                                    .foregroundStyle(colors.primaryText)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(18)
-                                    .background(colors.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                            }
-                            .buttonStyle(.plain)
-                        } else {
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                LazyHStack(spacing: 15) {
-                                    ForEach(customLists) { list in
-                                        NavigationLink { ListDetailView(list: list) } label: {
-                                            BinderCoverCard(list: list)
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                }
-                                .padding(.horizontal, 2)
-                                .padding(.bottom, 10)
-                            }
-                        }
-                    }
-
                     if !recentCards.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
@@ -196,42 +150,9 @@ struct DashboardView: View {
             }
             .sheet(isPresented: $showingSettings) { SettingsView() }
             .sheet(item: $showcaseTheme) { TalentShowcaseView(theme: $0) }
-            .sheet(item: $newBinderForCover) { binder in
-                TalentCoverPicker(
-                    selectedTalentName: Binding(
-                        get: { binder.coverTalentName },
-                        set: {
-                            binder.coverTalentName = $0
-                            try? modelContext.save()
-                        }
-                    )
-                )
-            }
-            .alert("New Binder", isPresented: $showingNewBinder) {
-                TextField("Trade binder", text: $newBinderName)
-                Button("Cancel", role: .cancel) { newBinderName = "" }
-                Button("Create") { createBinder() }
-                    .disabled(newBinderName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            } message: {
-                Text("Name your binder, then choose a talent cover.")
-            }
             .tint(colors.accent)
         }
     }
-
-    private func createBinder() {
-        let name = newBinderName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty else { return }
-        let binder = CardList(name: name)
-        modelContext.insert(binder)
-        try? modelContext.save()
-        newBinderName = ""
-        Task { @MainActor in
-            await Task.yield()
-            newBinderForCover = binder
-        }
-    }
-
 }
 
 private struct TalentSpotlightHero: View {

@@ -84,6 +84,39 @@ struct TalentArtworkView: View {
     }
 }
 
+struct AnimatedTalentArtworkView: View {
+    let theme: AppTheme
+    let artworkIndex: Int
+    var transitionDirection: CGFloat = 1
+    var contentMode: ContentMode = .fit
+    var showsPortraitPlaceholder = true
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var artworkID: String { "\(theme.rawValue)-\(artworkIndex)" }
+
+    private var artworkTransition: AnyTransition {
+        let distance = reduceMotion ? 0 : 46 * transitionDirection
+        return .asymmetric(
+            insertion: .offset(x: distance).combined(with: .opacity),
+            removal: .offset(x: -distance).combined(with: .opacity)
+        )
+    }
+
+    var body: some View {
+        ZStack {
+            TalentArtworkView(
+                theme: theme,
+                artworkIndex: artworkIndex,
+                contentMode: contentMode,
+                showsPortraitPlaceholder: showsPortraitPlaceholder
+            )
+            .id(artworkID)
+            .transition(artworkTransition)
+        }
+        .animation(.easeInOut(duration: reduceMotion ? 0.18 : 0.34), value: artworkID)
+    }
+}
+
 enum TalentCardFilter: String, CaseIterable, Identifiable {
     case all = "All"
     case owned = "Owned"
@@ -195,6 +228,7 @@ struct TalentShowcaseView: View {
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \CardList.createdAt) private var lists: [CardList]
     @State private var selectedArtwork = 0
+    @State private var artworkTransitionDirection: CGFloat = 1
 
     private var record: TalentArtworkRecord? { TalentArtworkCatalog.record(for: theme) }
     private var cardCount: Int { catalog.cards.filter { $0.belongs(to: theme) }.count }
@@ -283,14 +317,22 @@ struct TalentShowcaseView: View {
     private func artworkCarousel(colors: ThemeColors) -> some View {
         let count = max(record?.artworkURLs.count ?? 0, 1)
         return VStack(spacing: 8) {
-            TabView(selection: $selectedArtwork) {
-                ForEach(0..<count, id: \.self) { index in
-                    TalentArtworkView(theme: theme, artworkIndex: index, showsPortraitPlaceholder: false)
-                        .padding(.horizontal, 28)
-                        .tag(index)
-                }
-            }
-            .tabViewStyle(.page(indexDisplayMode: count > 1 ? .always : .never))
+            AnimatedTalentArtworkView(
+                theme: theme,
+                artworkIndex: selectedArtwork,
+                transitionDirection: artworkTransitionDirection,
+                showsPortraitPlaceholder: false
+            )
+            .padding(.horizontal, 28)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 24)
+                    .onEnded { value in
+                        guard count > 1, abs(value.translation.width) > 36 else { return }
+                        moveArtwork(by: value.translation.width < 0 ? 1 : -1, count: count)
+                    }
+            )
+            .frame(maxWidth: .infinity)
             .frame(height: 390)
             .background(
                 LinearGradient(
@@ -300,11 +342,33 @@ struct TalentShowcaseView: View {
                 ),
                 in: RoundedRectangle(cornerRadius: 28, style: .continuous)
             )
+            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
             if count > 1 {
-                Text("Look \(selectedArtwork + 1) of \(count)")
-                    .font(.caption).foregroundStyle(colors.secondaryText)
+                HStack(spacing: 18) {
+                    Button { moveArtwork(by: -1, count: count) } label: {
+                        Image(systemName: "chevron.left")
+                    }
+                    .accessibilityLabel("Previous outfit")
+
+                    Text("Look \(selectedArtwork + 1) of \(count)")
+                        .font(.caption)
+                        .foregroundStyle(colors.secondaryText)
+                        .contentTransition(.numericText())
+
+                    Button { moveArtwork(by: 1, count: count) } label: {
+                        Image(systemName: "chevron.right")
+                    }
+                    .accessibilityLabel("Next outfit")
+                }
+                .font(.caption.bold())
             }
         }
+    }
+
+    private func moveArtwork(by offset: Int, count: Int) {
+        guard count > 1 else { return }
+        artworkTransitionDirection = offset < 0 ? -1 : 1
+        selectedArtwork = (selectedArtwork + offset + count) % count
     }
 
     private func stat(value: String, label: String, colors: ThemeColors) -> some View {

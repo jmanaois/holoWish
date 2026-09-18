@@ -163,6 +163,7 @@ private struct TalentSpotlightHero: View {
     let artworkCount: Int
     let showNextArtwork: () -> Void
     let showShowcase: () -> Void
+    @Environment(TalentArtworkStore.self) private var artworkStore
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -187,7 +188,7 @@ private struct TalentSpotlightHero: View {
                 .blur(radius: 1)
                 .offset(x: 150, y: -105)
 
-            TalentArtworkView(theme: theme, artworkIndex: artworkIndex)
+            AnimatedTalentArtworkView(theme: theme, artworkIndex: artworkIndex)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
                 .padding(.leading, 105)
                 .scaleEffect(1.68, anchor: .topTrailing)
@@ -253,6 +254,12 @@ private struct TalentSpotlightHero: View {
         .onTapGesture(perform: showShowcase)
         .accessibilityAddTraits(.isButton)
         .accessibilityAction(named: "Open showcase", showShowcase)
+        .task(id: theme) {
+            guard let urls = TalentArtworkCatalog.record(for: theme)?.artworkURLs else { return }
+            for url in urls {
+                await artworkStore.load(url)
+            }
+        }
     }
 }
 

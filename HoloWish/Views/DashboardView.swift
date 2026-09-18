@@ -154,6 +154,21 @@ private struct TalentSpotlightHero: View {
     @Environment(TalentArtworkStore.self) private var artworkStore
     @Environment(\.colorScheme) private var colorScheme
 
+    private var currentArtworkURL: URL? {
+        guard let urls = TalentArtworkCatalog.record(for: theme)?.artworkURLs, !urls.isEmpty else { return nil }
+        return urls[min(artworkIndex, urls.count - 1)]
+    }
+
+    private var artworkHorizontalOffset: CGFloat {
+        guard let currentArtworkURL,
+              let image = artworkStore.image(for: currentArtworkURL),
+              image.size.height > 0 else { return 72 }
+
+        let aspectRatio = image.size.width / image.size.height
+        let normalizedWidth = min(max((aspectRatio - 0.6) / 0.4, 0), 1)
+        return 48 + (56 * normalizedWidth)
+    }
+
     var body: some View {
         let colors = theme.colors(for: colorScheme)
         ZStack(alignment: .bottomLeading) {
@@ -180,8 +195,9 @@ private struct TalentSpotlightHero: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
                 .padding(.leading, 105)
                 .scaleEffect(1.68, anchor: .topTrailing)
-                .offset(x: 104, y: -30)
+                .offset(x: artworkHorizontalOffset, y: -30)
                 .shadow(color: .black.opacity(0.24), radius: 16, x: -4, y: 10)
+                .animation(.easeInOut(duration: 0.25), value: artworkHorizontalOffset)
 
             LinearGradient(
                 colors: [.clear, .black.opacity(0.1), .black.opacity(0.72)],

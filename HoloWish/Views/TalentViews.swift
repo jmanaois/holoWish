@@ -37,6 +37,8 @@ struct TalentArtworkView: View {
     var artworkIndex = 0
     var contentMode: ContentMode = .fit
     @Environment(TalentArtworkStore.self) private var artworkStore
+    @State private var displayedImage: UIImage?
+    @State private var displayedThemeName = ""
 
     private var artworkURL: URL? {
         guard let urls = TalentArtworkCatalog.record(for: theme)?.artworkURLs, !urls.isEmpty else { return nil }
@@ -49,12 +51,29 @@ struct TalentArtworkView: View {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: contentMode)
+            } else if displayedThemeName == theme.rawValue, let displayedImage {
+                Image(uiImage: displayedImage)
+                    .resizable()
+                    .aspectRatio(contentMode: contentMode)
             } else {
                 TalentPortraitView(theme: theme, cornerRadius: 0)
             }
         }
         .task(id: artworkURL) {
-            if let artworkURL { await artworkStore.load(artworkURL) }
+            guard let artworkURL else { return }
+            if let image = artworkStore.image(for: artworkURL) {
+                displayedThemeName = theme.rawValue
+                displayedImage = image
+                return
+            }
+            if displayedThemeName != theme.rawValue {
+                displayedImage = nil
+                displayedThemeName = theme.rawValue
+            }
+            await artworkStore.load(artworkURL)
+            if let image = artworkStore.image(for: artworkURL) {
+                displayedImage = image
+            }
         }
     }
 }

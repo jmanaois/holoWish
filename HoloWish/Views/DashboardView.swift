@@ -228,7 +228,9 @@ private struct TalentSpotlightHero: View {
 
             TalentArtworkView(theme: theme, artworkIndex: artworkIndex)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
-                .padding(.leading, 118)
+                .padding(.leading, 112)
+                .scaleEffect(1.42, anchor: .topTrailing)
+                .offset(x: 82, y: -5)
 
             LinearGradient(colors: [.black.opacity(0.05), .black.opacity(0.68)], startPoint: .top, endPoint: .bottom)
 

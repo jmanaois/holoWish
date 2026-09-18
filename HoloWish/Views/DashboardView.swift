@@ -48,7 +48,7 @@ struct DashboardView: View {
         let colors = themeStore.colors(for: colorScheme)
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
+                VStack(alignment: .leading, spacing: 28) {
                     VStack(alignment: .leading, spacing: 5) {
                         Text("holoWish")
                             .font(.largeTitle.bold())
@@ -71,33 +71,7 @@ struct DashboardView: View {
                         showShowcase: { showcaseTheme = themeStore.selected }
                     )
 
-                    if let collection {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "sparkles")
-                                    .font(.subheadline.bold())
-                                    .foregroundStyle(colors.accent)
-                                Text("Collection")
-                                    .font(.title2.bold())
-                                    .textCase(.uppercase)
-                                    .tracking(0.6)
-                            }
-                                .foregroundStyle(colors.primaryText)
-                                .padding(.horizontal, 13)
-                                .padding(.vertical, 7)
-                                .background {
-                                    Capsule()
-                                        .fill(.ultraThinMaterial)
-                                        .overlay { Capsule().fill(colors.accent.opacity(0.09)) }
-                                        .overlay { Capsule().stroke(colors.accent.opacity(0.22), lineWidth: 1) }
-                                }
-
-                            CollectionValueCard(list: collection, snapshots: collectionSnapshots)
-                            MostValuableCardsView(entries: mostValuableCards)
-                        }
-                    }
-
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                         if let wishlist {
                             NavigationLink { ListDetailView(list: wishlist) } label: {
                                 DashboardButton(title: "Wishlist", subtitle: "\(wishlist.items.count) cards", icon: "heart.fill", color: colors.accent)
@@ -113,10 +87,12 @@ struct DashboardView: View {
 
                     if !recentCards.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Text("Recently Added")
-                                    .font(.title2.bold())
-                                    .foregroundStyle(colors.primaryText)
+                            HStack(alignment: .center) {
+                                DashboardSectionTitle(
+                                    title: "Recently Added",
+                                    subtitle: "Your latest collection additions",
+                                    icon: "clock.arrow.circlepath"
+                                )
                                 Spacer()
                                 if let collection {
                                     NavigationLink("View all") { ListDetailView(list: collection) }
@@ -137,6 +113,18 @@ struct DashboardView: View {
                         }
                     }
 
+                    if let collection {
+                        VStack(alignment: .leading, spacing: 12) {
+                            DashboardSectionTitle(
+                                title: "Collection Overview",
+                                subtitle: "Value history and standout cards",
+                                icon: "chart.line.uptrend.xyaxis"
+                            )
+
+                            CollectionValueCard(list: collection, snapshots: collectionSnapshots)
+                            MostValuableCardsView(entries: mostValuableCards)
+                        }
+                    }
                 }
                 .padding()
             }
@@ -236,7 +224,7 @@ private struct TalentSpotlightHero: View {
                 .accessibilityLabel("Next home outfit, look \(artworkIndex + 1) of \(artworkCount)")
             }
         }
-        .frame(height: 310)
+        .frame(height: 278)
         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 28, style: .continuous)
@@ -279,16 +267,71 @@ private struct DashboardButton: View {
 
     var body: some View {
         let colors = themeStore.colors(for: colorScheme)
-        VStack(alignment: .leading, spacing: 12) {
-            Image(systemName: icon).font(.title).foregroundStyle(colors.background)
-                .frame(width: 52, height: 52).background(color, in: RoundedRectangle(cornerRadius: 15))
-            Spacer(minLength: 8)
-            Text(title).font(.title3.bold()).foregroundStyle(colors.primaryText)
-            Text(subtitle).font(.caption).foregroundStyle(colors.secondaryText)
+        VStack(alignment: .leading, spacing: 11) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .frame(width: 42, height: 42)
+                    .background(color.gradient, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption.bold())
+                    .foregroundStyle(colors.secondaryText)
+            }
+            Text(title)
+                .font(.headline)
+                .foregroundStyle(colors.primaryText)
+            Text(subtitle)
+                .font(.caption)
+                .foregroundStyle(colors.secondaryText)
         }
-        .frame(maxWidth: .infinity, minHeight: 150, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 112, alignment: .leading)
         .padding(16)
-        .background(colors.surface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .background {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(colors.surface)
+                .overlay(alignment: .top) {
+                    LinearGradient(
+                        colors: [color.opacity(0.22), .clear],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                }
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(color.opacity(0.12), lineWidth: 1)
+        }
+    }
+}
+
+private struct DashboardSectionTitle: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    @Environment(ThemeStore.self) private var themeStore
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        let colors = themeStore.colors(for: colorScheme)
+        HStack(spacing: 11) {
+            Image(systemName: icon)
+                .font(.subheadline.bold())
+                .foregroundStyle(colors.accent)
+                .frame(width: 34, height: 34)
+                .background(colors.accent.opacity(0.11), in: Circle())
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.title3.bold())
+                    .foregroundStyle(colors.primaryText)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(colors.secondaryText)
+            }
+        }
     }
 }
 

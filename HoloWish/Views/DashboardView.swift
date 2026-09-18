@@ -54,14 +54,9 @@ struct DashboardView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Oshi Hub")
-                            .font(.largeTitle.bold())
-                            .foregroundStyle(colors.primaryText)
-                        Text("Your selected talent, looks, and card progress")
-                            .font(.subheadline)
-                            .foregroundStyle(colors.secondaryText)
-                    }
+                    Text("holoWish")
+                        .font(.largeTitle.bold())
+                        .foregroundStyle(colors.primaryText)
 
                     TalentSpotlightHero(
                         theme: themeStore.selected,
@@ -244,6 +239,8 @@ private struct TalentSpotlightHero: View {
             LinearGradient(colors: [.black.opacity(0.05), .black.opacity(0.68)], startPoint: .top, endPoint: .bottom)
 
             VStack(alignment: .leading, spacing: 7) {
+                Text("Oshi Hub")
+                    .font(.headline.bold())
                 Spacer()
                 Text(theme.rawValue)
                     .font(.title2.bold())
@@ -254,9 +251,6 @@ private struct TalentSpotlightHero: View {
                 Text(cardCount == 0 ? "No matched cards yet" : "\(collectedCount) of \(cardCount) cards collected")
                     .font(.caption)
                     .opacity(0.8)
-                Label("Open showcase", systemImage: "chevron.right")
-                    .font(.caption.bold())
-                    .opacity(0.85)
             }
             .foregroundStyle(.white)
             .padding(18)

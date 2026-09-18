@@ -159,15 +159,17 @@ private struct TalentSpotlightHero: View {
         return urls[min(artworkIndex, urls.count - 1)]
     }
 
-    private var artworkHorizontalOffset: CGFloat {
+    private var artworkWidthFactor: CGFloat {
         guard let currentArtworkURL,
               let image = artworkStore.image(for: currentArtworkURL),
-              image.size.height > 0 else { return 72 }
+              image.size.height > 0 else { return 0.45 }
 
         let aspectRatio = image.size.width / image.size.height
-        let normalizedWidth = min(max((aspectRatio - 0.6) / 0.4, 0), 1)
-        return 48 + (56 * normalizedWidth)
+        return min(max((aspectRatio - 0.6) / 0.4, 0), 1)
     }
+
+    private var artworkHorizontalOffset: CGFloat { 48 + (56 * artworkWidthFactor) }
+    private var artworkVerticalOffset: CGFloat { -30 + (22 * artworkWidthFactor) }
 
     var body: some View {
         let colors = theme.colors(for: colorScheme)
@@ -195,7 +197,7 @@ private struct TalentSpotlightHero: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
                 .padding(.leading, 105)
                 .scaleEffect(1.68, anchor: .topTrailing)
-                .offset(x: artworkHorizontalOffset, y: -30)
+                .offset(x: artworkHorizontalOffset, y: artworkVerticalOffset)
                 .shadow(color: .black.opacity(0.24), radius: 16, x: -4, y: 10)
                 .animation(.easeInOut(duration: 0.25), value: artworkHorizontalOffset)
 

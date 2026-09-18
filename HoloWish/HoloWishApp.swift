@@ -16,6 +16,7 @@ struct HoloWishApp: App {
 
     @State private var catalog = CardCatalog()
     @State private var artwork = CardArtworkStore()
+    @State private var talentArtwork = TalentArtworkStore()
     @State private var prices = CardPriceStore()
     @State private var themeStore = ThemeStore()
     @State private var appSettings = AppSettings()
@@ -26,6 +27,7 @@ struct HoloWishApp: App {
             ContentView()
                 .environment(catalog)
                 .environment(artwork)
+                .environment(talentArtwork)
                 .environment(prices)
                 .environment(themeStore)
                 .environment(appSettings)

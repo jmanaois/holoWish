@@ -9,10 +9,18 @@ struct DashboardView: View {
     @Query(sort: \CardList.createdAt) private var lists: [CardList]
     @Query(sort: \CollectionValueSnapshot.recordedAt) private var allValueSnapshots: [CollectionValueSnapshot]
     @State private var showingSettings = false
+    @State private var showcaseTheme: AppTheme?
 
     private var wishlist: CardList? { lists.first { $0.builtInKind == .wishlist } }
     private var collection: CardList? { lists.first { $0.builtInKind == .collection } }
     private var collectionQuantity: Int { collection?.items.reduce(0) { $0 + $1.quantity } ?? 0 }
+    private var customLists: [CardList] { lists.filter { $0.builtInKind == nil } }
+    private var selectedTalentCards: [Card] { catalog.cards.filter { $0.belongs(to: themeStore.selected) } }
+    private var selectedTalentCollectedCount: Int {
+        let cardIDs = Set(selectedTalentCards.map(\.id))
+        let ownedIDs = Set(collection?.items.map(\.cardID) ?? [])
+        return cardIDs.intersection(ownedIDs).count
+    }
     private var collectionSnapshots: [CollectionValueSnapshot] {
         guard let collection else { return [] }
         return allValueSnapshots.filter { $0.listID == collection.id }
@@ -41,12 +49,12 @@ struct DashboardView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text("holoWish")
-                            .font(.largeTitle.bold()).foregroundStyle(colors.primaryText)
-                        Text("your hololive ocg wishlist and collection at a glance")
-                            .foregroundStyle(colors.secondaryText)
-                    }
+                    TalentSpotlightHero(
+                        theme: themeStore.selected,
+                        cardCount: selectedTalentCards.count,
+                        collectedCount: selectedTalentCollectedCount,
+                        showShowcase: { showcaseTheme = themeStore.selected }
+                    )
 
                     if let collection {
                         VStack(alignment: .leading, spacing: 12) {
@@ -72,6 +80,42 @@ struct DashboardView: View {
                         }
                     }
                     .buttonStyle(.plain)
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("My Binders")
+                                .font(.title2.bold())
+                                .foregroundStyle(colors.primaryText)
+                            Spacer()
+                            NavigationLink(customLists.isEmpty ? "Create" : "Manage") { ListsView() }
+                                .font(.caption.bold())
+                        }
+
+                        if customLists.isEmpty {
+                            NavigationLink { ListsView() } label: {
+                                Label("Create a binder and give it a talent cover", systemImage: "plus.rectangle.on.rectangle")
+                                    .font(.subheadline.bold())
+                                    .foregroundStyle(colors.primaryText)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(18)
+                                    .background(colors.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                LazyHStack(spacing: 15) {
+                                    ForEach(customLists) { list in
+                                        NavigationLink { ListDetailView(list: list) } label: {
+                                            BinderCoverCard(list: list)
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                                .padding(.horizontal, 2)
+                                .padding(.bottom, 10)
+                            }
+                        }
+                    }
 
                     if !recentCards.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
@@ -111,10 +155,71 @@ struct DashboardView: View {
                 }
             }
             .sheet(isPresented: $showingSettings) { SettingsView() }
+            .sheet(item: $showcaseTheme) { TalentShowcaseView(theme: $0) }
             .tint(colors.accent)
         }
     }
 
+}
+
+private struct TalentSpotlightHero: View {
+    let theme: AppTheme
+    let cardCount: Int
+    let collectedCount: Int
+    let showShowcase: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        let colors = theme.colors(for: colorScheme)
+        ZStack(alignment: .bottomLeading) {
+            LinearGradient(
+                colors: [colors.accent.opacity(0.92), colors.secondaryAccent.opacity(0.65), colors.surface],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            TalentArtworkView(theme: theme)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
+                .padding(.leading, 118)
+
+            LinearGradient(colors: [.black.opacity(0.05), .black.opacity(0.68)], startPoint: .top, endPoint: .bottom)
+
+            VStack(alignment: .leading, spacing: 7) {
+                Text("holoWish")
+                    .font(.caption.bold())
+                    .textCase(.uppercase)
+                    .tracking(1.2)
+                Spacer()
+                Text(theme.rawValue)
+                    .font(.title2.bold())
+                    .lineLimit(2)
+                Text(theme.japaneseName)
+                    .font(.subheadline.weight(.semibold))
+                    .opacity(0.85)
+                Text(cardCount == 0 ? "No matched cards yet" : "\(collectedCount) of \(cardCount) cards collected")
+                    .font(.caption)
+                    .opacity(0.8)
+                HStack(spacing: 10) {
+                    Button("Showcase", action: showShowcase)
+                        .buttonStyle(.borderedProminent)
+                        .tint(.white)
+                        .foregroundStyle(.black)
+                    NavigationLink { TalentCardBrowserView(theme: theme) } label: {
+                        Image(systemName: "rectangle.stack.fill")
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.white)
+                    .accessibilityLabel("Browse \(theme.rawValue) cards")
+                }
+            }
+            .foregroundStyle(.white)
+            .padding(18)
+        }
+        .frame(height: 300)
+        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .overlay { RoundedRectangle(cornerRadius: 28).stroke(.white.opacity(0.18), lineWidth: 1) }
+        .shadow(color: colors.accent.opacity(0.2), radius: 16, y: 8)
+    }
 }
 
 private struct ValuableCard: Identifiable {

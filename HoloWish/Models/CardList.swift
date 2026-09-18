@@ -12,6 +12,7 @@ final class CardList {
     var name: String
     var createdAt: Date
     var builtInKindRaw: String?
+    var coverTalentName: String?
 
     @Relationship(deleteRule: .cascade, inverse: \CardListItem.list)
     var items: [CardListItem]
@@ -21,6 +22,7 @@ final class CardList {
         self.name = name
         createdAt = .now
         builtInKindRaw = builtInKind?.rawValue
+        coverTalentName = nil
         items = []
     }
 

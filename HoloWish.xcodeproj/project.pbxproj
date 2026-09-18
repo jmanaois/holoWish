@@ -26,6 +26,10 @@
 		A00100000000000000000012 /* ThemePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00100000000000000000012 /* ThemePickerView.swift */; };
 		A00100000000000000000013 /* CardPriceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00100000000000000000013 /* CardPriceStore.swift */; };
 		A00100000000000000000015 /* TalentPortraits in Resources */ = {isa = PBXBuildFile; fileRef = B00100000000000000000015 /* TalentPortraits */; };
+		A00100000000000000000016 /* TalentArtwork.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00100000000000000000016 /* TalentArtwork.swift */; };
+		A00100000000000000000017 /* TalentArtworkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00100000000000000000017 /* TalentArtworkStore.swift */; };
+		A00100000000000000000018 /* TalentViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00100000000000000000018 /* TalentViews.swift */; };
+		A00100000000000000000019 /* talent-artwork.json in Resources */ = {isa = PBXBuildFile; fileRef = B00100000000000000000019 /* talent-artwork.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -50,6 +54,10 @@
 		B00100000000000000000013 /* CardPriceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardPriceStore.swift; sourceTree = "<group>"; };
 		B00100000000000000000014 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B00100000000000000000015 /* TalentPortraits */ = {isa = PBXFileReference; lastKnownFileType = folder; path = TalentPortraits; sourceTree = "<group>"; };
+		B00100000000000000000016 /* TalentArtwork.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalentArtwork.swift; sourceTree = "<group>"; };
+		B00100000000000000000017 /* TalentArtworkStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalentArtworkStore.swift; sourceTree = "<group>"; };
+		B00100000000000000000018 /* TalentViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalentViews.swift; sourceTree = "<group>"; };
+		B00100000000000000000019 /* talent-artwork.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "talent-artwork.json"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -92,6 +100,7 @@
 				B00100000000000000000002 /* Card.swift */,
 				B00100000000000000000003 /* CardList.swift */,
 				B00100000000000000000011 /* AppTheme.swift */,
+				B00100000000000000000016 /* TalentArtwork.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -102,6 +111,7 @@
 				B00100000000000000000004 /* CardCatalog.swift */,
 				B0010000000000000000000E /* CardArtworkStore.swift */,
 				B00100000000000000000013 /* CardPriceStore.swift */,
+				B00100000000000000000017 /* TalentArtworkStore.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -118,6 +128,7 @@
 				B00100000000000000000008 /* FilterSheet.swift */,
 				B00100000000000000000009 /* CardDetailView.swift */,
 				B0010000000000000000000A /* ListsView.swift */,
+				B00100000000000000000018 /* TalentViews.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -126,6 +137,7 @@
 			isa = PBXGroup;
 			children = (
 				B0010000000000000000000B /* cards.json */,
+				B00100000000000000000019 /* talent-artwork.json */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -199,6 +211,7 @@
 				A0010000000000000000000B /* cards.json in Resources */,
 				A0010000000000000000000C /* Assets.xcassets in Resources */,
 				A00100000000000000000015 /* TalentPortraits in Resources */,
+				A00100000000000000000019 /* talent-artwork.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -225,6 +238,9 @@
 				A00100000000000000000011 /* AppTheme.swift in Sources */,
 				A00100000000000000000012 /* ThemePickerView.swift in Sources */,
 				A00100000000000000000013 /* CardPriceStore.swift in Sources */,
+				A00100000000000000000016 /* TalentArtwork.swift in Sources */,
+				A00100000000000000000017 /* TalentArtworkStore.swift in Sources */,
+				A00100000000000000000018 /* TalentViews.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

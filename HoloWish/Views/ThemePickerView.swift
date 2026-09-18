@@ -62,7 +62,7 @@ struct ThemePickerView: View {
             }
         } label: {
             HStack(spacing: 13) {
-                TalentPortrait(theme: theme)
+                TalentPortraitView(theme: theme)
                     .frame(width: 62, height: 62)
                     .accessibilityHidden(true)
 
@@ -119,40 +119,12 @@ struct ThemePickerView: View {
     }
 }
 
-private struct TalentPortrait: View {
-    let theme: AppTheme
-
-    var body: some View {
-        Group {
-            if let url = Bundle.main.url(
-                forResource: theme.portraitFileName,
-                withExtension: nil,
-                subdirectory: "TalentPortraits"
-            ), let image = UIImage(contentsOfFile: url.path) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                Image(systemName: "person.crop.square.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .padding(12)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 15, style: .continuous)
-                .stroke(.white.opacity(0.22), lineWidth: 1)
-        }
-    }
-}
-
 struct SettingsView: View {
     @Environment(AppSettings.self) private var appSettings
     @Environment(ThemeStore.self) private var themeStore
     @Environment(CardCatalog.self) private var catalog
     @Environment(CardArtworkStore.self) private var artwork
+    @Environment(TalentArtworkStore.self) private var talentArtwork
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     @State private var showingThemes = false
@@ -296,10 +268,13 @@ struct SettingsView: View {
             .alert("Clear downloaded artwork?", isPresented: $showingClearArtworkConfirmation) {
                 Button("Cancel", role: .cancel) {}
                 Button("Clear Artwork", role: .destructive) {
-                    Task { await artwork.clearDownloadedArtwork() }
+                    Task {
+                        await artwork.clearDownloadedArtwork()
+                        await talentArtwork.clearDownloadedArtwork()
+                    }
                 }
             } message: {
-                Text("Card and product images can be downloaded again later.")
+                Text("Card, product, and talent images can be downloaded again later.")
             }
         }
         .background(colors.background)

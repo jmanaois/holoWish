@@ -164,6 +164,7 @@ struct TalentShowcaseView: View {
     let theme: AppTheme
     @Environment(CardCatalog.self) private var catalog
     @Environment(ThemeStore.self) private var themeStore
+    @Environment(AppSettings.self) private var appSettings
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \CardList.createdAt) private var lists: [CardList]
@@ -198,6 +199,24 @@ struct TalentShowcaseView: View {
                         stat(value: (record?.artworkURLs.count ?? 0).formatted(), label: "Looks", colors: colors)
                     }
 
+                    if (record?.artworkURLs.count ?? 0) > 1 {
+                        Button {
+                            appSettings.setHomeArtworkIndex(selectedArtwork, for: theme)
+                        } label: {
+                            Label(
+                                appSettings.homeArtworkIndex(for: theme) == selectedArtwork
+                                    ? "Look \(selectedArtwork + 1) is on Home"
+                                    : "Use Look \(selectedArtwork + 1) on Home",
+                                systemImage: appSettings.homeArtworkIndex(for: theme) == selectedArtwork
+                                    ? "checkmark.circle.fill"
+                                    : "house.fill"
+                            )
+                            .font(.subheadline.bold())
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                    }
+
                     NavigationLink {
                         TalentCardBrowserView(theme: theme)
                     } label: {
@@ -224,6 +243,7 @@ struct TalentShowcaseView: View {
             .tint(colors.accent)
         }
         .presentationBackground(colors.background)
+        .task { selectedArtwork = appSettings.homeArtworkIndex(for: theme) }
     }
 
     private func artworkCarousel(colors: ThemeColors) -> some View {

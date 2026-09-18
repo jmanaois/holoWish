@@ -5,11 +5,16 @@ import SwiftUI
 struct DashboardView: View {
     @Environment(CardCatalog.self) private var catalog
     @Environment(ThemeStore.self) private var themeStore
+    @Environment(AppSettings.self) private var appSettings
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.modelContext) private var modelContext
     @Query(sort: \CardList.createdAt) private var lists: [CardList]
     @Query(sort: \CollectionValueSnapshot.recordedAt) private var allValueSnapshots: [CollectionValueSnapshot]
     @State private var showingSettings = false
     @State private var showcaseTheme: AppTheme?
+    @State private var showingNewBinder = false
+    @State private var newBinderName = ""
+    @State private var newBinderForCover: CardList?
 
     private var wishlist: CardList? { lists.first { $0.builtInKind == .wishlist } }
     private var collection: CardList? { lists.first { $0.builtInKind == .collection } }
@@ -53,6 +58,9 @@ struct DashboardView: View {
                         theme: themeStore.selected,
                         cardCount: selectedTalentCards.count,
                         collectedCount: selectedTalentCollectedCount,
+                        artworkIndex: appSettings.homeArtworkIndex(for: themeStore.selected),
+                        artworkCount: TalentArtworkCatalog.record(for: themeStore.selected)?.artworkURLs.count ?? 0,
+                        showNextArtwork: { appSettings.cycleHomeArtwork(for: themeStore.selected) },
                         showShowcase: { showcaseTheme = themeStore.selected }
                     )
 
@@ -87,12 +95,17 @@ struct DashboardView: View {
                                 .font(.title2.bold())
                                 .foregroundStyle(colors.primaryText)
                             Spacer()
-                            NavigationLink(customLists.isEmpty ? "Create" : "Manage") { ListsView() }
-                                .font(.caption.bold())
+                            if customLists.isEmpty {
+                                Button("Create") { showingNewBinder = true }
+                                    .font(.caption.bold())
+                            } else {
+                                NavigationLink("Manage") { ListsView() }
+                                    .font(.caption.bold())
+                            }
                         }
 
                         if customLists.isEmpty {
-                            NavigationLink { ListsView() } label: {
+                            Button { showingNewBinder = true } label: {
                                 Label("Create a binder and give it a talent cover", systemImage: "plus.rectangle.on.rectangle")
                                     .font(.subheadline.bold())
                                     .foregroundStyle(colors.primaryText)
@@ -156,7 +169,39 @@ struct DashboardView: View {
             }
             .sheet(isPresented: $showingSettings) { SettingsView() }
             .sheet(item: $showcaseTheme) { TalentShowcaseView(theme: $0) }
+            .sheet(item: $newBinderForCover) { binder in
+                TalentCoverPicker(
+                    selectedTalentName: Binding(
+                        get: { binder.coverTalentName },
+                        set: {
+                            binder.coverTalentName = $0
+                            try? modelContext.save()
+                        }
+                    )
+                )
+            }
+            .alert("New Binder", isPresented: $showingNewBinder) {
+                TextField("Trade binder", text: $newBinderName)
+                Button("Cancel", role: .cancel) { newBinderName = "" }
+                Button("Create") { createBinder() }
+                    .disabled(newBinderName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            } message: {
+                Text("Name your binder, then choose a talent cover.")
+            }
             .tint(colors.accent)
+        }
+    }
+
+    private func createBinder() {
+        let name = newBinderName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return }
+        let binder = CardList(name: name)
+        modelContext.insert(binder)
+        try? modelContext.save()
+        newBinderName = ""
+        Task { @MainActor in
+            await Task.yield()
+            newBinderForCover = binder
         }
     }
 
@@ -166,6 +211,9 @@ private struct TalentSpotlightHero: View {
     let theme: AppTheme
     let cardCount: Int
     let collectedCount: Int
+    let artworkIndex: Int
+    let artworkCount: Int
+    let showNextArtwork: () -> Void
     let showShowcase: () -> Void
     @Environment(\.colorScheme) private var colorScheme
 
@@ -178,7 +226,7 @@ private struct TalentSpotlightHero: View {
                 endPoint: .bottomTrailing
             )
 
-            TalentArtworkView(theme: theme)
+            TalentArtworkView(theme: theme, artworkIndex: artworkIndex)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
                 .padding(.leading, 118)
 
@@ -204,6 +252,14 @@ private struct TalentSpotlightHero: View {
                         .buttonStyle(.borderedProminent)
                         .tint(.white)
                         .foregroundStyle(.black)
+                    if artworkCount > 1 {
+                        Button(action: showNextArtwork) {
+                            Image(systemName: "photo.on.rectangle.angled")
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.white)
+                        .accessibilityLabel("Next home outfit, look \(artworkIndex + 1) of \(artworkCount)")
+                    }
                     NavigationLink { TalentCardBrowserView(theme: theme) } label: {
                         Image(systemName: "rectangle.stack.fill")
                     }

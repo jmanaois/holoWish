@@ -295,6 +295,7 @@ final class AppSettings {
         static let appearance = "settings.appearance"
         static let cardNamePreference = "settings.cardNamePreference"
         static let quickAddBehavior = "settings.quickAddBehavior"
+        static let homeArtworkIndices = "settings.homeArtworkIndices"
     }
 
     var appearance: AppAppearance {
@@ -306,12 +307,34 @@ final class AppSettings {
     var quickAddBehavior: QuickAddBehavior {
         didSet { UserDefaults.standard.set(quickAddBehavior.rawValue, forKey: Key.quickAddBehavior) }
     }
+    private var homeArtworkIndices: [String: Int] {
+        didSet { UserDefaults.standard.set(homeArtworkIndices, forKey: Key.homeArtworkIndices) }
+    }
 
     init() {
         let defaults = UserDefaults.standard
         appearance = defaults.string(forKey: Key.appearance).flatMap(AppAppearance.init(rawValue:)) ?? .system
         cardNamePreference = defaults.string(forKey: Key.cardNamePreference).flatMap(CardNamePreference.init(rawValue:)) ?? .japaneseFirst
         quickAddBehavior = defaults.string(forKey: Key.quickAddBehavior).flatMap(QuickAddBehavior.init(rawValue:)) ?? .addImmediately
+        homeArtworkIndices = defaults.dictionary(forKey: Key.homeArtworkIndices) as? [String: Int] ?? [:]
+    }
+
+    func homeArtworkIndex(for theme: AppTheme) -> Int {
+        let count = TalentArtworkCatalog.record(for: theme)?.artworkURLs.count ?? 0
+        guard count > 0 else { return 0 }
+        return min(max(homeArtworkIndices[theme.rawValue] ?? 0, 0), count - 1)
+    }
+
+    func setHomeArtworkIndex(_ index: Int, for theme: AppTheme) {
+        let count = TalentArtworkCatalog.record(for: theme)?.artworkURLs.count ?? 0
+        guard count > 0 else { return }
+        homeArtworkIndices[theme.rawValue] = min(max(index, 0), count - 1)
+    }
+
+    func cycleHomeArtwork(for theme: AppTheme) {
+        let count = TalentArtworkCatalog.record(for: theme)?.artworkURLs.count ?? 0
+        guard count > 1 else { return }
+        setHomeArtworkIndex((homeArtworkIndex(for: theme) + 1) % count, for: theme)
     }
 }
 

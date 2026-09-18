@@ -225,22 +225,45 @@ private struct TalentSpotlightHero: View {
         let colors = theme.colors(for: colorScheme)
         ZStack(alignment: .bottomLeading) {
             LinearGradient(
-                colors: [colors.accent.opacity(0.92), colors.secondaryAccent.opacity(0.65), colors.surface],
+                colors: [colors.accent.opacity(0.92), colors.secondaryAccent.opacity(0.72), colors.surface],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
 
+            RadialGradient(
+                colors: [.white.opacity(0.3), colors.secondaryAccent.opacity(0.12), .clear],
+                center: UnitPoint(x: 0.78, y: 0.27),
+                startRadius: 8,
+                endRadius: 210
+            )
+
+            Circle()
+                .fill(.white.opacity(0.07))
+                .frame(width: 190, height: 190)
+                .blur(radius: 1)
+                .offset(x: 150, y: -105)
+
             TalentArtworkView(theme: theme, artworkIndex: artworkIndex)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
-                .padding(.leading, 112)
-                .scaleEffect(1.42, anchor: .topTrailing)
-                .offset(x: 82, y: -5)
+                .padding(.leading, 105)
+                .scaleEffect(1.68, anchor: .topTrailing)
+                .offset(x: 104, y: -30)
+                .shadow(color: .black.opacity(0.24), radius: 16, x: -4, y: 10)
 
-            LinearGradient(colors: [.black.opacity(0.05), .black.opacity(0.68)], startPoint: .top, endPoint: .bottom)
+            LinearGradient(
+                colors: [.clear, .black.opacity(0.1), .black.opacity(0.72)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
 
             VStack(alignment: .leading, spacing: 7) {
-                Text("Oshi Hub")
-                    .font(.headline.bold())
+                Label("Oshi Hub", systemImage: "sparkles")
+                    .font(.caption.bold())
+                    .textCase(.uppercase)
+                    .tracking(0.7)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
+                    .background(.ultraThinMaterial, in: Capsule())
                 Spacer()
                 Text(theme.rawValue)
                     .font(.title2.bold())
@@ -268,10 +291,20 @@ private struct TalentSpotlightHero: View {
                 .accessibilityLabel("Next home outfit, look \(artworkIndex + 1) of \(artworkCount)")
             }
         }
-        .frame(height: 300)
+        .frame(height: 310)
         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .overlay { RoundedRectangle(cornerRadius: 28).stroke(.white.opacity(0.18), lineWidth: 1) }
-        .shadow(color: colors.accent.opacity(0.2), radius: 16, y: 8)
+        .overlay {
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [.white.opacity(0.5), colors.accent.opacity(0.2), .white.opacity(0.08)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.2
+                )
+        }
+        .shadow(color: colors.accent.opacity(0.24), radius: 18, y: 9)
         .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .onTapGesture(perform: showShowcase)
         .accessibilityAddTraits(.isButton)

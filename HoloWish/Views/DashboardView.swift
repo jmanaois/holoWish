@@ -54,9 +54,21 @@ struct DashboardView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
-                    Text("holoWish")
-                        .font(.largeTitle.bold())
+                    VStack(alignment: .leading, spacing: 5) {
+                        HStack {
+                            Text("holoWish")
+                                .font(.largeTitle.bold())
+                            Spacer()
+                            Image(systemName: "sparkles")
+                                .font(.title2.bold())
+                                .foregroundStyle(colors.accent)
+                                .accessibilityHidden(true)
+                        }
                         .foregroundStyle(colors.primaryText)
+
+                        Text("your hololive ocg wishlist and collection at a glance")
+                            .foregroundStyle(colors.secondaryText)
+                    }
 
                     TalentSpotlightHero(
                         theme: themeStore.selected,
@@ -70,9 +82,14 @@ struct DashboardView: View {
 
                     if let collection {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Collection")
+                            Label("Collection", systemImage: "sparkles")
                                 .font(.title2.bold())
+                                .textCase(.uppercase)
+                                .tracking(0.7)
                                 .foregroundStyle(colors.primaryText)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 9)
+                                .background(.ultraThinMaterial, in: Capsule())
 
                             CollectionValueCard(list: collection, snapshots: collectionSnapshots)
                             MostValuableCardsView(entries: mostValuableCards)

@@ -9,7 +9,7 @@ final class TalentArtworkStore {
     private(set) var loadingURLs: Set<URL> = []
     private(set) var revision = 0
 
-    @ObservationIgnored private let memoryCache = NSCache<NSURL, UIImage>()
+    @ObservationIgnored private let memoryCache = NSCache<NSURL, DecodedArtwork>()
 
     init() {
         memoryCache.countLimit = 18
@@ -18,7 +18,12 @@ final class TalentArtworkStore {
 
     func image(for url: URL) -> UIImage? {
         _ = revision
-        return memoryCache.object(forKey: url as NSURL)
+        return memoryCache.object(forKey: url as NSURL)?.image
+    }
+
+    func homeImage(for url: URL) -> UIImage? {
+        _ = revision
+        return memoryCache.object(forKey: url as NSURL)?.homeImage
     }
 
     func load(_ url: URL) async {
@@ -26,9 +31,11 @@ final class TalentArtworkStore {
         loadingURLs.insert(url)
         defer { loadingURLs.remove(url) }
 
-        guard let image = await Self.loadImage(remoteURL: url) else { return }
-        let cost = image.cgImage.map { $0.bytesPerRow * $0.height } ?? 1
-        memoryCache.setObject(image, forKey: url as NSURL, cost: cost)
+        guard let artwork = await Self.loadImage(remoteURL: url) else { return }
+        let cost = [artwork.image, artwork.homeImage].reduce(0) { total, image in
+            total + (image.cgImage.map { $0.bytesPerRow * $0.height } ?? 1)
+        }
+        memoryCache.setObject(artwork, forKey: url as NSURL, cost: cost)
         revision &+= 1
     }
 
@@ -40,7 +47,7 @@ final class TalentArtworkStore {
         revision &+= 1
     }
 
-    nonisolated private static func loadImage(remoteURL: URL) async -> UIImage? {
+    nonisolated private static func loadImage(remoteURL: URL) async -> DecodedArtwork? {
         let localURL = fileURL(for: remoteURL)
         if let data = try? Data(contentsOf: localURL, options: .mappedIfSafe),
            let image = decode(data) {
@@ -59,7 +66,7 @@ final class TalentArtworkStore {
         return image
     }
 
-    nonisolated private static func decode(_ data: Data) -> UIImage? {
+    nonisolated private static func decode(_ data: Data) -> DecodedArtwork? {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
         let options: [CFString: Any] = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
@@ -68,7 +75,47 @@ final class TalentArtworkStore {
             kCGImageSourceShouldCacheImmediately: true
         ]
         guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
-        return UIImage(cgImage: image)
+        return DecodedArtwork(image: UIImage(cgImage: image), homeImage: UIImage(cgImage: trimmedImage(image)))
+    }
+
+    private final class DecodedArtwork: Sendable {
+        let image: UIImage
+        let homeImage: UIImage
+
+        init(image: UIImage, homeImage: UIImage) {
+            self.image = image
+            self.homeImage = homeImage
+        }
+    }
+
+    // Keep every visible pixel, including faint hair and accessories. Only the
+    // Home presentation uses this crop; the showcase retains the source canvas.
+    nonisolated private static func trimmedImage(_ image: CGImage) -> CGImage {
+        let width = image.width
+        let height = image.height
+        var rgba = [UInt8](repeating: 0, count: width * height * 4)
+        let bounds: CGRect? = rgba.withUnsafeMutableBytes { buffer in
+            guard let context = CGContext(data: buffer.baseAddress, width: width, height: height,
+                                          bitsPerComponent: 8, bytesPerRow: width * 4,
+                                          space: CGColorSpaceCreateDeviceRGB(),
+                                          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                                            | CGBitmapInfo.byteOrder32Big.rawValue) else { return nil }
+            context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+            let pixels = buffer.bindMemory(to: UInt8.self)
+            var minX = width, minY = height, maxX = -1, maxY = -1
+            for y in 0..<height {
+                for x in 0..<width where pixels[(y * width + x) * 4 + 3] > 0 {
+                    minX = min(minX, x)
+                    minY = min(minY, y)
+                    maxX = max(maxX, x)
+                    maxY = max(maxY, y)
+                }
+            }
+            guard maxX >= minX, maxY >= minY else { return nil }
+            return CGRect(x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1)
+        }
+        guard let bounds else { return image }
+        return image.cropping(to: bounds) ?? image
     }
 
     nonisolated private static var artworkDirectory: URL {

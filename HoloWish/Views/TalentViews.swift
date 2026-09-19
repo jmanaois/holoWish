@@ -37,6 +37,7 @@ struct TalentArtworkView: View {
     var artworkIndex = 0
     var contentMode: ContentMode = .fit
     var showsPortraitPlaceholder = true
+    var framesForHome = false
     @Environment(TalentArtworkStore.self) private var artworkStore
     @State private var displayedImage: UIImage?
     @State private var displayedThemeName = ""
@@ -46,16 +47,36 @@ struct TalentArtworkView: View {
         return urls[min(artworkIndex, urls.count - 1)]
     }
 
-    var body: some View {
-        Group {
-            if let artworkURL, let image = artworkStore.image(for: artworkURL) {
+    private func cachedImage(for url: URL) -> UIImage? {
+        framesForHome ? artworkStore.homeImage(for: url) : artworkStore.image(for: url)
+    }
+
+    @ViewBuilder private func artwork(_ image: UIImage) -> some View {
+        if framesForHome {
+            GeometryReader { geometry in
+                let scale = min(geometry.size.width * 0.78 / image.size.width,
+                                geometry.size.height * 1.68 / image.size.height)
+                let width = image.size.width * scale
+                let height = image.size.height * scale
+                let center = min(geometry.size.width * 0.67, geometry.size.width - 20 - width / 2)
                 Image(uiImage: image)
                     .resizable()
-                    .aspectRatio(contentMode: contentMode)
+                    .frame(width: width, height: height)
+                    .position(x: center, y: 16 + height / 2)
+            }
+        } else {
+            Image(uiImage: image)
+                .resizable()
+                .aspectRatio(contentMode: contentMode)
+        }
+    }
+
+    var body: some View {
+        Group {
+            if let artworkURL, let image = cachedImage(for: artworkURL) {
+                artwork(image)
             } else if displayedThemeName == theme.rawValue, let displayedImage {
-                Image(uiImage: displayedImage)
-                    .resizable()
-                    .aspectRatio(contentMode: contentMode)
+                artwork(displayedImage)
             } else {
                 if showsPortraitPlaceholder {
                     TalentPortraitView(theme: theme, cornerRadius: 0)
@@ -67,7 +88,7 @@ struct TalentArtworkView: View {
         }
         .task(id: artworkURL) {
             guard let artworkURL else { return }
-            if let image = artworkStore.image(for: artworkURL) {
+            if let image = cachedImage(for: artworkURL) {
                 displayedThemeName = theme.rawValue
                 displayedImage = image
                 return
@@ -77,7 +98,7 @@ struct TalentArtworkView: View {
                 displayedThemeName = theme.rawValue
             }
             await artworkStore.load(artworkURL)
-            if let image = artworkStore.image(for: artworkURL) {
+            if !Task.isCancelled, let image = cachedImage(for: artworkURL) {
                 displayedImage = image
             }
         }
@@ -90,6 +111,7 @@ struct AnimatedTalentArtworkView: View {
     var transitionDirection: CGFloat = 1
     var contentMode: ContentMode = .fit
     var showsPortraitPlaceholder = true
+    var framesForHome = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var artworkID: String { "\(theme.rawValue)-\(artworkIndex)" }
@@ -108,7 +130,8 @@ struct AnimatedTalentArtworkView: View {
                 theme: theme,
                 artworkIndex: artworkIndex,
                 contentMode: contentMode,
-                showsPortraitPlaceholder: showsPortraitPlaceholder
+                showsPortraitPlaceholder: showsPortraitPlaceholder,
+                framesForHome: framesForHome
             )
             .id(artworkID)
             .transition(artworkTransition)

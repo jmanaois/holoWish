@@ -63,6 +63,19 @@ xcrun swiftc -parse-as-library -target "$(uname -m)-apple-macosx14.0" HoloWish/M
 
 Before releasing, build in Xcode and verify on a simulator/device: upgrade an existing populated install; add, cancel, edit, and clear a price; enter zero and invalid input; change quantities and remove cards; relaunch in airplane mode and check saved totals. Refresh shop values online, then offline, checking partial coverage and retained cached quotes. Also check custom lists, unchanged wishlist behavior, and larger Dynamic Type sizes. Native build, migration, and device UI checks require macOS/Xcode and cannot run from the Windows development workspace.
 
+Oshi Hub downloads every outfit automatically at launch and when the app becomes active, including talents you have not opened. Settings → Storage shows outfit download progress and pause/retry controls. Once downloaded, outfits persist in Application Support and work offline after relaunch. A first download requires a connection; clearing downloaded artwork removes outfits too.
+
+The outfit cache regression check uses intercepted network responses to verify bulk downloads, failed-download retries, disk-only reloads, pause, and clearing. Run it on a booted iOS simulator (it uses the simulator's shared Application Support directory, outside installed app containers):
+
+```sh
+xcrun --sdk iphonesimulator swiftc -parse-as-library -swift-version 6 \
+  -strict-concurrency=complete -target "$(uname -m)-apple-ios17.0-simulator" \
+  -sdk "$(xcrun --sdk iphonesimulator --show-sdk-path)" \
+  HoloWish/Services/TalentArtworkStore.swift test/talent-artwork-offline.swift \
+  -o /tmp/holowish-outfit-check
+xcrun simctl spawn booted /tmp/holowish-outfit-check
+```
+
 ## Theme palettes
 
 Choose a theme from Settings. The picker uses square portraits from the [official talent directory](https://hololive.hololivepro.com/en/talents/) and is searchable by English or Japanese name. Themes are grouped into hololive, Indonesia, English, DEV_IS, ASOBI★MAWARI-TAI!, holoAN, and Alumni & Staff.

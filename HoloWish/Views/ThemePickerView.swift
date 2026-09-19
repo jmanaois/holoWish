@@ -222,7 +222,27 @@ struct SettingsView: View {
                             )
                         }
                     }
-                    if artwork.downloadedCount > 0 {
+                    HStack {
+                        Label("Offline Oshi outfits", systemImage: "person.crop.rectangle")
+                        Spacer()
+                        Text("\(talentArtwork.downloadedCount) / \(talentArtwork.totalCount)")
+                            .font(.subheadline.monospacedDigit())
+                            .foregroundStyle(colors.secondaryText)
+                    }
+                    ProgressView(value: talentArtwork.progress).tint(colors.accent)
+                    if talentArtwork.downloadedCount < talentArtwork.totalCount {
+                        Button(talentArtwork.isDownloading ? "Pause Outfit Download" : "Download Missing Outfits") {
+                            if talentArtwork.isDownloading { talentArtwork.pauseDownloading() }
+                            else { talentArtwork.beginDownloading() }
+                        }
+                        .disabled(talentArtwork.isClearing)
+                    }
+                    if talentArtwork.failedCount > 0 {
+                        Text("\(talentArtwork.failedCount) outfits couldn’t download. Retry when connected.")
+                            .font(.caption)
+                            .foregroundStyle(colors.secondaryText)
+                    }
+                    if artwork.downloadedCount > 0 || talentArtwork.downloadedCount > 0 {
                         Button("Clear Downloaded Artwork", role: .destructive) {
                             showingClearArtworkConfirmation = true
                         }

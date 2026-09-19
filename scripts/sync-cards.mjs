@@ -13,6 +13,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 // Official English product names take priority. These curated translations cover
 // Japanese releases that do not yet have a matching product on the English site.
 const japaneseProductTranslations = new Map([
+  ['sele09', 'Selection Cup – Eligible Cards'],
   ['hBP09', 'Booster Pack – Volume Vortex'],
   ['hEB01', 'Extra Booster – Summer Hologram'],
   ['hBP08', 'Booster Pack – Bouncer Bound'],

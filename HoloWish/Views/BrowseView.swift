@@ -367,9 +367,8 @@ private struct SetTile: View {
         VStack(alignment: .leading, spacing: 0) {
             ZStack {
                 colors.background.opacity(0.55)
-                CachedSetImage(set: summary, contentMode: .fit)
+                CachedSetImage(set: summary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(6)
             }
             .aspectRatio(506 / 314, contentMode: .fit)
             .clipped()
@@ -452,9 +451,8 @@ struct SetDetailView: View {
                 if summary.productImage != nil {
                     ZStack {
                         colors.surface
-                        CachedSetImage(set: summary, contentMode: .fit)
+                        CachedSetImage(set: summary)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .padding(10)
                     }
                         .aspectRatio(506 / 314, contentMode: .fit)
                         .frame(maxWidth: 420)

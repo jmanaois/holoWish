@@ -370,6 +370,8 @@ struct TalentShowcaseView: View {
                 HStack(spacing: 18) {
                     Button { moveArtwork(by: -1, count: count) } label: {
                         Image(systemName: "chevron.left")
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
                     }
                     .accessibilityLabel("Previous outfit")
 
@@ -380,6 +382,8 @@ struct TalentShowcaseView: View {
 
                     Button { moveArtwork(by: 1, count: count) } label: {
                         Image(systemName: "chevron.right")
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
                     }
                     .accessibilityLabel("Next outfit")
                 }

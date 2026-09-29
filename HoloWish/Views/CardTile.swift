@@ -77,19 +77,15 @@ struct CardTile: View {
             }
             .font(.caption2.weight(.medium))
             .foregroundStyle(colors.secondaryText)
-            .frame(height: 15)
 
             Text(card.primaryName(for: appSettings.cardNamePreference))
                 .font(.subheadline.bold())
                 .foregroundStyle(colors.primaryText)
-                .lineLimit(1)
-                .frame(height: 19, alignment: .leading)
-            Text(englishSubtitle)
-                .font(.caption)
-                .foregroundStyle(colors.secondaryText)
-                .lineLimit(1)
-                .opacity(englishSubtitle.isEmpty ? 0 : 1)
-                .frame(height: 16, alignment: .leading)
+            if !englishSubtitle.isEmpty {
+                Text(englishSubtitle)
+                    .font(.caption)
+                    .foregroundStyle(colors.secondaryText)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)

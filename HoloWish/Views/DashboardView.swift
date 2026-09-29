@@ -156,90 +156,94 @@ private struct TalentSpotlightHero: View {
 
     var body: some View {
         let colors = theme.colors(for: colorScheme)
-        ZStack(alignment: .bottomLeading) {
-            LinearGradient(
-                colors: [colors.accent.opacity(0.92), colors.secondaryAccent.opacity(0.72), colors.surface],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+        ZStack(alignment: .topTrailing) {
+            Button(action: showShowcase) {
+                ZStack(alignment: .bottomLeading) {
+                    LinearGradient(
+                        colors: [colors.accent.opacity(0.92), colors.secondaryAccent.opacity(0.72), colors.surface],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
 
-            RadialGradient(
-                colors: [.white.opacity(0.3), colors.secondaryAccent.opacity(0.12), .clear],
-                center: UnitPoint(x: 0.78, y: 0.27),
-                startRadius: 8,
-                endRadius: 210
-            )
+                    RadialGradient(
+                        colors: [.white.opacity(0.3), colors.secondaryAccent.opacity(0.12), .clear],
+                        center: UnitPoint(x: 0.78, y: 0.27),
+                        startRadius: 8,
+                        endRadius: 210
+                    )
 
-            Circle()
-                .fill(.white.opacity(0.07))
-                .frame(width: 190, height: 190)
-                .blur(radius: 1)
-                .offset(x: 150, y: -105)
+                    Circle()
+                        .fill(.white.opacity(0.07))
+                        .frame(width: 190, height: 190)
+                        .blur(radius: 1)
+                        .offset(x: 150, y: -105)
 
-            AnimatedTalentArtworkView(theme: theme, artworkIndex: artworkIndex,
-                                      showsPortraitPlaceholder: false, framesForHome: true)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .shadow(color: .black.opacity(0.24), radius: 16, x: -4, y: 10)
+                    AnimatedTalentArtworkView(theme: theme, artworkIndex: artworkIndex,
+                                              showsPortraitPlaceholder: false, framesForHome: true)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .shadow(color: .black.opacity(0.24), radius: 16, x: -4, y: 10)
 
-            LinearGradient(
-                colors: [.clear, .black.opacity(0.1), .black.opacity(0.72)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+                    LinearGradient(
+                        colors: [.clear, .black.opacity(0.1), .black.opacity(0.72)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
 
-            VStack(alignment: .leading, spacing: 7) {
-                Label("Oshi Hub", systemImage: "sparkles")
-                    .font(.caption.bold())
-                    .textCase(.uppercase)
-                    .tracking(0.7)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 7)
-                    .background(.ultraThinMaterial, in: Capsule())
-                Spacer()
-                Text(theme.rawValue)
-                    .font(.title2.bold())
-                    .lineLimit(2)
-                Text(theme.japaneseName)
-                    .font(.subheadline.weight(.semibold))
-                    .opacity(0.85)
-                Text(cardCount == 0 ? "No matched cards yet" : "\(collectedCount) of \(cardCount) cards collected")
-                    .font(.caption)
-                    .opacity(0.8)
+                    VStack(alignment: .leading, spacing: 7) {
+                        Label("Oshi Hub", systemImage: "sparkles")
+                            .font(.caption.bold())
+                            .textCase(.uppercase)
+                            .tracking(0.7)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 7)
+                            .background(.ultraThinMaterial, in: Capsule())
+                        Spacer()
+                        Text(theme.rawValue)
+                            .font(.title2.bold())
+                            .lineLimit(2)
+                        Text(theme.japaneseName)
+                            .font(.subheadline.weight(.semibold))
+                            .opacity(0.85)
+                        Text(cardCount == 0 ? "No matched cards yet" : "\(collectedCount) of \(cardCount) cards collected")
+                            .font(.caption)
+                            .opacity(0.8)
+                    }
+                    .foregroundStyle(.white)
+                    .padding(18)
+                }
+                .frame(height: 278)
+                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        .stroke(
+                            LinearGradient(
+                                colors: [.white.opacity(0.5), colors.accent.opacity(0.2), .white.opacity(0.08)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1.2
+                        )
+                }
+                .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
             }
-            .foregroundStyle(.white)
-            .padding(18)
+            .buttonStyle(.plain)
+            .accessibilityLabel("Open \(theme.rawValue) Oshi Hub")
 
             if artworkCount > 1 {
                 Button(action: showNextArtwork) {
                     Image(systemName: "photo.on.rectangle.angled")
                         .font(.headline)
-                        .padding(11)
+                        .frame(width: 44, height: 44)
                         .background(.ultraThinMaterial, in: Circle())
+                        .contentShape(Circle())
                 }
+                .buttonStyle(.plain)
                 .tint(.white)
                 .padding(14)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
                 .accessibilityLabel("Next home outfit, look \(artworkIndex + 1) of \(artworkCount)")
             }
         }
-        .frame(height: 278)
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .stroke(
-                    LinearGradient(
-                        colors: [.white.opacity(0.5), colors.accent.opacity(0.2), .white.opacity(0.08)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1.2
-                )
-        }
         .shadow(color: colors.accent.opacity(0.24), radius: 18, y: 9)
-        .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .onTapGesture(perform: showShowcase)
-        .accessibilityAddTraits(.isButton)
-        .accessibilityAction(named: "Open showcase", showShowcase)
         .task(id: theme) {
             guard let urls = TalentArtworkCatalog.record(for: theme)?.artworkURLs else { return }
             for url in urls {

@@ -16,17 +16,17 @@ final class CardList {
     @Relationship(deleteRule: .cascade, inverse: \CardListItem.list)
     var items: [CardListItem]
 
-    init(name: String, builtInKind: BuiltInList? = nil) {
+    init(name: String, builtInKind: BuiltInList) {
         id = UUID()
         self.name = name
         createdAt = .now
-        builtInKindRaw = builtInKind?.rawValue
+        builtInKindRaw = builtInKind.rawValue
         items = []
     }
 
     var builtInKind: BuiltInList? { builtInKindRaw.flatMap(BuiltInList.init(rawValue:)) }
 
-    var tracksPurchases: Bool { builtInKind != .wishlist }
+    var tracksPurchases: Bool { builtInKind == .collection }
 
     var totalPaidYen: Decimal {
         items.reduce(Decimal.zero) { $0 + ($1.purchasePrice ?? 0) * Decimal($1.quantity) }

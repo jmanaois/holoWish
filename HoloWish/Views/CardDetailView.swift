@@ -119,24 +119,13 @@ struct CardDetailView: View {
     @ViewBuilder
     private var listSection: some View {
         let colors = themeStore.colors(for: colorScheme)
-        let customLists = lists.filter { $0.builtInKind == nil }
         let collectionItem = collection?.items.first { $0.cardID == card.id }
-        if collectionItem != nil || !customLists.isEmpty {
+        if let collection, let collectionItem {
             VStack(alignment: .leading, spacing: 12) {
-                if let collection, let collectionItem {
-                    Label("Collection Details", systemImage: "square.stack.3d.up.fill")
-                        .font(.headline)
-                        .foregroundStyle(colors.primaryText)
-                    collectionControls(item: collectionItem, list: collection)
-                }
-
-                if !customLists.isEmpty {
-                    Text("CUSTOM LISTS")
-                        .font(.caption.bold())
-                        .foregroundStyle(colors.secondaryText)
-                        .padding(.top, collectionItem == nil ? 0 : 4)
-                    ForEach(customLists) { list in listControl(list) }
-                }
+                Label("Collection Details", systemImage: "square.stack.3d.up.fill")
+                    .font(.headline)
+                    .foregroundStyle(colors.primaryText)
+                collectionControls(item: collectionItem, list: collection)
             }
             .padding(16)
             .background(colors.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
@@ -150,10 +139,10 @@ struct CardDetailView: View {
         if wishlist != nil || collection != nil {
             HStack(spacing: 10) {
                 if let wishlist {
-                    builtInListButton(wishlist, color: colors.accent)
+                    builtInListButton(wishlist, kind: .wishlist, color: colors.accent)
                 }
                 if let collection {
-                    builtInListButton(collection, color: colors.secondaryAccent)
+                    builtInListButton(collection, kind: .collection, color: colors.secondaryAccent)
                 }
             }
             .padding(.horizontal)
@@ -269,14 +258,13 @@ struct CardDetailView: View {
         .background(colors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
-    private func builtInListButton(_ list: CardList, color: Color) -> some View {
+    private func builtInListButton(_ list: CardList, kind: BuiltInList, color: Color) -> some View {
         let colors = themeStore.colors(for: colorScheme)
         let item = list.items.first { $0.cardID == card.id }
         let isAdded = item != nil
-        let title = switch list.builtInKind {
+        let title = switch kind {
         case .wishlist: isAdded ? "In Wishlist" : "Add to Wishlist"
         case .collection: isAdded ? "In Collection" : "Add to Collection"
-        case nil: list.name
         }
 
         return Button { toggle(cardIn: list, item: item) } label: {
@@ -308,6 +296,8 @@ struct CardDetailView: View {
         return HStack(spacing: 10) {
             Button { changeQuantity(of: item, in: list, by: -1) } label: {
                 Image(systemName: "minus.circle.fill")
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
             .accessibilityLabel("Decrease quantity")
             Text(item.quantity.formatted())
@@ -315,6 +305,8 @@ struct CardDetailView: View {
                 .frame(minWidth: 24)
             Button { changeQuantity(of: item, in: list, by: 1) } label: {
                 Image(systemName: "plus.circle.fill")
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
             .accessibilityLabel("Increase quantity")
 
@@ -334,41 +326,6 @@ struct CardDetailView: View {
         .background(colors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
-    @ViewBuilder
-    private func listControl(_ list: CardList) -> some View {
-        let colors = themeStore.colors(for: colorScheme)
-        let item = list.items.first { $0.cardID == card.id }
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Button { toggle(cardIn: list, item: item) } label: {
-                    Label(list.name, systemImage: item == nil ? "circle" : "checkmark.circle.fill")
-                        .foregroundStyle(item == nil ? colors.primaryText : colors.accent)
-                }
-                Spacer()
-                if list.tracksPurchases, let item {
-                    Button { changeQuantity(of: item, in: list, by: -1) } label: { Image(systemName: "minus.circle") }
-                        .accessibilityLabel("Decrease quantity")
-                    Text("\(item.quantity)").monospacedDigit().frame(minWidth: 22)
-                    Button { changeQuantity(of: item, in: list, by: 1) } label: { Image(systemName: "plus.circle") }
-                        .accessibilityLabel("Increase quantity")
-                }
-            }
-            if list.tracksPurchases, let item {
-                Button { purchaseList = list } label: {
-                    if let price = item.purchasePrice {
-                        Text("Paid \(price.formatted(.currency(code: "JPY"))) per copy · Edit")
-                    } else {
-                        Label("Add purchase price", systemImage: "pencil")
-                    }
-                }
-                .font(.caption).foregroundStyle(colors.accent)
-            }
-        }
-        .buttonStyle(.plain)
-        .padding(.vertical, 11)
-        .overlay(alignment: .bottom) { Divider() }
-    }
-
     private func toggle(cardIn list: CardList, item: CardListItem?) {
         if let item {
             let removedValue = (item.purchasePrice ?? 0) * Decimal(item.quantity)
@@ -379,7 +336,7 @@ struct CardDetailView: View {
             try? modelContext.save()
             actionFeedback += 1
         }
-        else if list.tracksPurchases { purchaseList = list }
+        else if list.builtInKind == .collection { purchaseList = list }
         else {
             list.items.append(CardListItem(cardID: card.id))
             try? modelContext.save()

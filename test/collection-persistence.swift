@@ -30,7 +30,7 @@ struct CollectionPersistenceChecks {
         precondition(list.totalPaidYen == 3750)
         precondition(list.unpricedQuantity == 2, "A free card is priced; an unknown price is not.")
         precondition(!CardList(name: "Wishlist", builtInKind: .wishlist).tracksPurchases)
-        precondition(CardList(name: "Binder").tracksPurchases)
+        precondition(list.tracksPurchases)
         try context.save()
     }
 

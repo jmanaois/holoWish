@@ -9,7 +9,7 @@ A native SwiftUI collection tracker for the Japanese edition of the hololive OFF
 3. Choose your development team under **Signing & Capabilities** when running on a physical device.
 4. Press Run.
 
-The app uses SwiftUI and SwiftData with no third-party runtime dependencies. Card metadata works offline, and official Japanese card artwork is downloaded into Application Support for offline viewing. Downloads run at low concurrency, can be paused from Home, and resume by filling in missing images whenever the app becomes active. Artwork file reads and thumbnail decoding stay off the main UI thread. Wishlist, collection quantities, and custom lists persist on-device.
+The app uses SwiftUI and SwiftData with no third-party runtime dependencies. Card metadata works offline, and official Japanese card artwork is downloaded into Application Support for offline viewing. Downloads run at low concurrency, can be paused from Home, and resume by filling in missing images whenever the app becomes active. Artwork file reads and thumbnail decoding stay off the main UI thread. Wishlist and collection quantities persist on-device.
 
 The bundled catalog is the first-run fallback. The app stores newer validated catalogs in Application Support and checks the repository update feed at launch or foregrounding, at most once every 24 hours. A refresh button in the Cards screen also supports manual checks.
 
@@ -29,16 +29,16 @@ The catalog sync also cross-references the official English card list by card nu
 
 ## Current MVP
 
-- Dashboard-first navigation with large shortcuts to Wishlist, Collection, Search, and custom lists
+- Dashboard-first navigation with large shortcuts to Wishlist and Collection, plus a Search tab
 - Searchable portrait themes for all 83 entries in the current official hololive talent directory, grouped by branch and including affiliates, alumni, and staff. Each portrait-derived palette adapts to light and dark appearance; Bijou remains the default.
 - Talent spotlights, full-body artwork showcases, and per-talent card progress bring official character art throughout the app.
 - Browse compact set tiles using official Japanese product/booster artwork, with Japanese or English names and live collection completion progress
 - Search within any set, sort in either direction by card number, name, rarity, type, or color, and filter using only values available in that set
 - Search Japanese and official English names, card numbers, tags, and sets
 - Filter by rarity, card type, color, bloom level, set, or parallel status
-- Wishlist and collection lists, plus custom lists
+- Wishlist and collection lists
 - Per-card collection quantities
-- Optional JPY purchase price per copy when adding to a collection or custom list, editable from card details
+- Optional JPY purchase price per copy when adding to the collection, editable from card details
 - Collection worth summary with quantity-adjusted total paid, missing-price counts, and cached Yuyutei shop estimates
 - Native SwiftData persistence
 - Adaptive iPhone and iPad card grid
@@ -48,9 +48,9 @@ The catalog sync also cross-references the official English card list by card nu
 
 ## Purchase prices and collection worth
 
-Tap a collection or custom list in a card's details to enter quantity and an optional whole-yen purchase price per copy. For copies purchased at different prices, enter the average per copy, rounded to whole yen. Tap the purchase price below the list name to edit it later or clear it. Changing quantity applies that same per-copy price to all copies. Cancelling the editor leaves the list unchanged.
+Tap Add to Collection in a card's details to enter quantity and an optional whole-yen purchase price per copy. For copies purchased at different prices, enter the average per copy, rounded to whole yen. Tap the purchase price in Collection Details to edit it later or clear it. Changing quantity applies that same per-copy price to all copies. Cancelling the editor leaves the list unchanged.
 
-Open the collection from Home or My Lists to see **Total paid** and a separate Yuyutei shop estimate. Unknown purchase prices are excluded and counted; a price of zero means a free card. Shop estimates use the lowest cached listing matching the card number and rarity, including out-of-stock listings, multiplied by quantity. Missing quotes are explicitly shown as incomplete coverage. These are shop-price estimates and may not distinguish artwork variants with the same number and rarity.
+Open the Collection tab or its Home shortcut to see **Total paid** and a separate Yuyutei shop estimate. Unknown purchase prices are excluded and counted; a price of zero means a free card. Shop estimates use the lowest cached listing matching the card number and rarity, including out-of-stock listings, multiplied by quantity. Missing quotes are explicitly shown as incomplete coverage. These are shop-price estimates and may not distinguish artwork variants with the same number and rarity.
 
 **Refresh Yuyutei value** fetches the collection's prices. Previously cached quotes remain available offline, with the oldest lookup date displayed. Purchase prices and quantities persist in local SwiftData storage; cloud sync is disabled. Existing items start with an unknown purchase price.
 
@@ -61,7 +61,7 @@ xcrun swiftc -parse-as-library -target "$(uname -m)-apple-macosx14.0" HoloWish/M
 /tmp/holowish-collection-check
 ```
 
-Before releasing, build in Xcode and verify on a simulator/device: upgrade an existing populated install; add, cancel, edit, and clear a price; enter zero and invalid input; change quantities and remove cards; relaunch in airplane mode and check saved totals. Refresh shop values online, then offline, checking partial coverage and retained cached quotes. Also check custom lists, unchanged wishlist behavior, and larger Dynamic Type sizes. Native build, migration, and device UI checks require macOS/Xcode and cannot run from the Windows development workspace.
+Before releasing, build in Xcode and verify on a simulator/device: upgrade an existing populated install; add, cancel, edit, and clear a price; enter zero and invalid input; change quantities and remove cards; relaunch in airplane mode and check saved totals. Refresh shop values online, then offline, checking partial coverage and retained cached quotes. Also check unchanged wishlist behavior and larger Dynamic Type sizes. Legacy custom-list records remain in local storage but are no longer shown or edited. Native build, migration, and device UI checks require macOS/Xcode and cannot run from the Windows development workspace.
 
 Oshi Hub downloads every outfit automatically at launch and when the app becomes active, including talents you have not opened. Settings → Storage shows outfit download progress and pause/retry controls. Once downloaded, outfits persist in Application Support and work offline after relaunch. A first download requires a connection; clearing downloaded artwork removes outfits too.
 
@@ -82,7 +82,7 @@ Choose a theme from Settings. The picker uses square portraits from the [officia
 
 Each palette starts with two prominent colors extracted from its portrait. Light and dark surfaces are generated from those colors, and primary text, secondary text, and both accents maintain at least 4.5:1 calculated contrast against their background and surface colors. Dashboard icons use the background color against accent fills so they remain legible in both appearances. These are UI adaptations rather than official brand color specifications.
 
-On a Mac, verify each theme in the iOS simulator in both appearances, including Home, Search, My Lists, card details, and sheets. Toggle appearance while the theme picker is open, then relaunch to confirm the selected member is retained. Check larger Dynamic Type sizes and VoiceOver selection announcements. Palette contrast checks do not replace native rendering checks.
+On a Mac, verify each theme in the iOS simulator in both appearances, including Home, Search, Wishlist, Collection, card details, and sheets. Toggle appearance while the theme picker is open, then relaunch to confirm the selected member is retained. Check larger Dynamic Type sizes and VoiceOver selection announcements. Palette contrast checks do not replace native rendering checks.
 
 ## Next production step
 

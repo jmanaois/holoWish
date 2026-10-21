@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 256 256">
+  <title>Holowish tile icon</title>
+  <rect width="256" height="256" fill="#e8e8ee"/>
+  <g fill="none" stroke="#a2aac1" stroke-width="1">
+    <ellipse cx="128" cy="113" rx="97.5" ry="50" transform="rotate(-35 128 113)"/>
+    <ellipse cx="128" cy="113" rx="97.5" ry="50" transform="rotate(35 128 113)" opacity=".5"/>
+  </g>
+  <text x="130" y="157" text-anchor="middle" font-family="Georgia,serif" font-size="125" fill="#ffffff" opacity=".63">✧</text>
+  <text x="128" y="154" text-anchor="middle" font-family="Georgia,serif" font-size="125" fill="#727d9c">✧</text>
+  <text x="128" y="192" text-anchor="middle" font-family="Georgia,serif" font-size="24" fill="#292c35">holowish</text>
+</svg>

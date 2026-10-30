@@ -9,6 +9,8 @@ struct ThemePickerView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
+    /// The main oshi when the picker opened; it stays followed if the user picks someone else.
+    @State private var originalOshi: AppTheme?
 
     var body: some View {
         let active = themeStore.colors(for: colorScheme)
@@ -57,6 +59,12 @@ struct ThemePickerView: View {
         }
         .background(active.background)
         .presentationBackground(active.background)
+        .onAppear { if originalOshi == nil { originalOshi = themeStore.selected } }
+        .onDisappear {
+            if mode == .theme, let originalOshi, originalOshi != themeStore.selected {
+                themeStore.follow(originalOshi)
+            }
+        }
     }
 
     private func themeButton(_ theme: AppTheme, active: ThemeColors) -> some View {

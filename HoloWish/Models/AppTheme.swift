@@ -273,6 +273,17 @@ final class ThemeStore {
 
     func isFavorite(_ theme: AppTheme) -> Bool { favorites.contains(theme) }
 
+    /// Makes `theme` the main oshi; the previous main oshi stays followed.
+    func makeMainOshi(_ theme: AppTheme) {
+        guard theme != selected else { return }
+        follow(selected)
+        selected = theme
+    }
+
+    func follow(_ theme: AppTheme) {
+        if !favorites.contains(theme) { favorites.append(theme) }
+    }
+
     func toggleFavorite(_ theme: AppTheme) {
         if let index = favorites.firstIndex(of: theme) { favorites.remove(at: index) }
         else { favorites.append(theme) }

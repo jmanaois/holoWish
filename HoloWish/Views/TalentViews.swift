@@ -435,7 +435,7 @@ struct TalentShowcaseView: View {
                 .background(colors.surface, in: Capsule())
         } else {
             Button {
-                withAnimation(.easeInOut(duration: 0.3)) { themeStore.selected = theme }
+                withAnimation(.easeInOut(duration: 0.3)) { themeStore.makeMainOshi(theme) }
             } label: {
                 HStack(spacing: 10) {
                     HStack(spacing: -5) {

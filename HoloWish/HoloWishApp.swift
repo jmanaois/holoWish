@@ -42,11 +42,15 @@ struct HoloWishApp: App {
             .environment(appSettings)
             .preferredColorScheme(appSettings.appearance.colorScheme)
             .task {
+                configureNewCardAlerts()
                 talentArtwork.beginDownloading()
                 await catalog.start()
                 artwork.beginDownloading(catalog.cards)
             }
             .onChange(of: scenePhase) { _, phase in
+                if phase == .background, appSettings.newCardAlerts {
+                    NewCardNotifier.shared.scheduleBackgroundRefresh()
+                }
                 if phase == .active {
                     talentArtwork.beginDownloading()
                     Task {
@@ -57,5 +61,24 @@ struct HoloWishApp: App {
             }
         }
         .modelContainer(modelContainer)
+        .backgroundTask(.appRefresh(NewCardNotifier.refreshTaskID)) {
+            await refreshCatalogInBackground()
+        }
+    }
+
+    private func configureNewCardAlerts() {
+        NewCardNotifier.shared.activate()
+        catalog.onCardsAdded = { [themeStore, appSettings] cards in
+            guard appSettings.newCardAlerts, themeStore.hasChosenOshi else { return }
+            NewCardNotifier.shared.notify(about: cards, following: themeStore.followedOshi)
+        }
+    }
+
+    private func refreshCatalogInBackground() async {
+        configureNewCardAlerts()
+        guard appSettings.newCardAlerts else { return }
+        NewCardNotifier.shared.scheduleBackgroundRefresh()
+        await catalog.load()
+        await catalog.checkForUpdates()
     }
 }

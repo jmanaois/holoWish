@@ -35,7 +35,8 @@ struct BrowseView: View {
             (filters.color.isEmpty || card.allColors.contains(filters.color)) &&
             (filters.bloomLevel.isEmpty || card.bloomLevel == filters.bloomLevel) &&
             (filters.set.isEmpty || card.allSets.contains(filters.set)) &&
-            (!filters.parallelsOnly || card.parallel)
+            (!filters.parallelsOnly || card.parallel) &&
+            (filters.talent.map(card.belongs(to:)) ?? true)
         }
     }
 
@@ -173,7 +174,7 @@ struct BrowseView: View {
                 }
 
                 HStack {
-                    Text("Cards").font(.headline)
+                    Text(filters.talent.map { "\($0.rawValue) Cards" } ?? "Cards").font(.headline)
                     Spacer()
                     Text("\(cards.count.formatted()) results").font(.caption).foregroundStyle(.secondary)
                     if filters.isActive { Button("Clear filters") { filters.clear() }.font(.caption.bold()) }
@@ -252,6 +253,21 @@ struct BrowseView: View {
                 .contentMargins(.horizontal, -16, for: .scrollContent)
             }
 
+            VStack(alignment: .leading, spacing: 8) {
+                Text("My Oshi")
+                    .font(.headline)
+                    .foregroundStyle(colors.primaryText)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(themeStore.followedOshi) { theme in
+                            talentFilterButton(theme)
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+                .contentMargins(.horizontal, -16, for: .scrollContent)
+            }
+
             if !recentSearches.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
@@ -311,6 +327,32 @@ struct BrowseView: View {
                 .overlay { Capsule().stroke(colors.accent.opacity(0.25), lineWidth: 1) }
         }
         .buttonStyle(CardPressButtonStyle())
+    }
+
+    private func talentFilterButton(_ theme: AppTheme) -> some View {
+        let colors = themeStore.colors(for: colorScheme)
+        return Button {
+            withAnimation(.easeInOut(duration: 0.22)) {
+                searchText = ""
+                filters.clear()
+                filters.talent = theme
+            }
+        } label: {
+            HStack(spacing: 7) {
+                TalentPortraitView(theme: theme, cornerRadius: 13)
+                    .frame(width: 26, height: 26)
+                Text(theme.rawValue)
+                    .font(.caption.bold())
+                    .foregroundStyle(colors.primaryText)
+            }
+            .padding(.leading, 4)
+            .padding(.trailing, 11)
+            .padding(.vertical, 4)
+            .background(colors.surface, in: Capsule())
+            .overlay { Capsule().stroke(theme.colors(for: colorScheme).accent.opacity(0.45), lineWidth: 1) }
+        }
+        .buttonStyle(CardPressButtonStyle())
+        .accessibilityLabel("Show \(theme.rawValue) cards")
     }
 
     private func rememberSearch(_ value: String) {

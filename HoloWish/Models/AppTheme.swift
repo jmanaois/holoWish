@@ -237,14 +237,22 @@ struct ThemeColors {
 @Observable
 final class ThemeStore {
     private static let defaultsKey = "appearance.theme"
+    private static let favoritesKey = "appearance.favoriteOshi"
 
     var selected: AppTheme {
         didSet { if hasChosenOshi { persist() } }
     }
     /// False until the user picks an oshi in first-run setup.
     private(set) var hasChosenOshi: Bool
+    /// Extra talents the user follows alongside their main oshi, in the order they were added.
+    private(set) var favorites: [AppTheme] {
+        didSet { UserDefaults.standard.set(favorites.map(\.rawValue), forKey: Self.favoritesKey) }
+    }
+    /// The main oshi followed by favourites, without duplicates.
+    var followedOshi: [AppTheme] { [selected] + favorites.filter { $0 != selected } }
 
     init() {
+        favorites = (UserDefaults.standard.stringArray(forKey: Self.favoritesKey) ?? []).compactMap(AppTheme.init(rawValue:))
         if let stored = UserDefaults.standard.string(forKey: Self.defaultsKey).flatMap(AppTheme.init(rawValue:)) {
             selected = stored
             hasChosenOshi = true
@@ -261,6 +269,13 @@ final class ThemeStore {
         selected = theme
         hasChosenOshi = true
         persist()
+    }
+
+    func isFavorite(_ theme: AppTheme) -> Bool { favorites.contains(theme) }
+
+    func toggleFavorite(_ theme: AppTheme) {
+        if let index = favorites.firstIndex(of: theme) { favorites.remove(at: index) }
+        else { favorites.append(theme) }
     }
 
     func colors(for scheme: ColorScheme) -> ThemeColors { selected.colors(for: scheme) }
@@ -314,6 +329,11 @@ final class AppSettings {
         static let cardNamePreference = "settings.cardNamePreference"
         static let quickAddBehavior = "settings.quickAddBehavior"
         static let homeArtworkIndices = "settings.homeArtworkIndices"
+        static let newCardAlerts = "settings.newCardAlerts"
+    }
+
+    var newCardAlerts: Bool {
+        didSet { UserDefaults.standard.set(newCardAlerts, forKey: Key.newCardAlerts) }
     }
 
     var appearance: AppAppearance {
@@ -335,6 +355,7 @@ final class AppSettings {
         cardNamePreference = defaults.string(forKey: Key.cardNamePreference).flatMap(CardNamePreference.init(rawValue:)) ?? .japaneseFirst
         quickAddBehavior = defaults.string(forKey: Key.quickAddBehavior).flatMap(QuickAddBehavior.init(rawValue:)) ?? .addImmediately
         homeArtworkIndices = defaults.dictionary(forKey: Key.homeArtworkIndices) as? [String: Int] ?? [:]
+        newCardAlerts = defaults.bool(forKey: Key.newCardAlerts)
     }
 
     func homeArtworkIndex(for theme: AppTheme) -> Int {

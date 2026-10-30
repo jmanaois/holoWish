@@ -218,7 +218,26 @@ struct TalentCardBrowserView: View {
         .background(colors.background)
         .navigationTitle(theme.rawValue)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if !talentCards.isEmpty {
+                ToolbarItem(placement: .topBarTrailing) {
+                    SharePosterButton { binderPoster }
+                }
+            }
+        }
         .tint(colors.accent)
+    }
+
+    private var binderPoster: SharePosterContent {
+        let owned = talentCards.filter { collectionIDs.contains($0.id) }
+        let missing = talentCards.filter { !collectionIDs.contains($0.id) }
+        return SharePosterContent(
+            title: "\(theme.rawValue) Binder",
+            subtitle: "\(owned.count) of \(talentCards.count) collected",
+            theme: theme,
+            cards: owned + missing,
+            ownedIDs: collectionIDs
+        )
     }
 
     private func talentHeader(colors: ThemeColors) -> some View {
@@ -282,6 +301,8 @@ struct TalentShowcaseView: View {
                         stat(value: (record?.artworkURLs.count ?? 0).formatted(), label: "Looks", colors: colors)
                     }
 
+                    themeActions(colors: colors)
+
                     if (record?.artworkURLs.count ?? 0) > 1 {
                         Button {
                             appSettings.setHomeArtworkIndex(selectedArtwork, for: theme)
@@ -322,7 +343,19 @@ struct TalentShowcaseView: View {
             .background(colors.background)
             .navigationTitle("Talent Showcase")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    let isFavorite = themeStore.isFavorite(theme)
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) { themeStore.toggleFavorite(theme) }
+                    } label: {
+                        Image(systemName: isFavorite ? "star.fill" : "star")
+                    }
+                    .sensoryFeedback(.selection, trigger: isFavorite)
+                    .accessibilityLabel(isFavorite ? "Unfollow \(theme.rawValue)" : "Follow \(theme.rawValue)")
+                }
+                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+            }
             .tint(colors.accent)
         }
         .presentationBackground(colors.background)
@@ -389,6 +422,37 @@ struct TalentShowcaseView: View {
                 }
                 .font(.caption.bold())
             }
+        }
+    }
+
+    @ViewBuilder private func themeActions(colors: ThemeColors) -> some View {
+        if theme == themeStore.selected {
+            Label("Your current theme", systemImage: "checkmark.seal.fill")
+                .font(.subheadline.bold())
+                .foregroundStyle(colors.accent)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(colors.surface, in: Capsule())
+        } else {
+            Button {
+                withAnimation(.easeInOut(duration: 0.3)) { themeStore.selected = theme }
+            } label: {
+                HStack(spacing: 10) {
+                    HStack(spacing: -5) {
+                        let palette = theme.colors(for: colorScheme)
+                        Circle().fill(palette.accent).frame(width: 20, height: 20)
+                        Circle().fill(palette.secondaryAccent).frame(width: 20, height: 20)
+                    }
+                    .accessibilityHidden(true)
+                    Text("Make This My Theme")
+                }
+                .font(.subheadline.bold())
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 4)
+            }
+            .buttonStyle(.bordered)
+            .buttonBorderShape(.capsule)
+            .sensoryFeedback(.success, trigger: themeStore.selected)
         }
     }
 

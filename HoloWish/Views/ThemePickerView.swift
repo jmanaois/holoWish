@@ -2,6 +2,9 @@ import SwiftUI
 import UIKit
 
 struct ThemePickerView: View {
+    enum Mode { case theme, favorites }
+
+    var mode = Mode.theme
     @Environment(ThemeStore.self) private var themeStore
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
@@ -13,7 +16,9 @@ struct ThemePickerView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 12, pinnedViews: [.sectionHeaders]) {
                     if searchText.isEmpty {
-                        Text("Choose a talent portrait and a coordinated palette for light and dark appearance.")
+                        Text(mode == .theme
+                             ? "Choose a talent portrait and a coordinated palette for light and dark appearance. Tap the star to follow a talent on Home."
+                             : "Follow talents to see them on Home, filter Search by them, and get new card alerts.")
                             .font(.subheadline)
                             .foregroundStyle(active.secondaryText)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -42,7 +47,7 @@ struct ThemePickerView: View {
                 .padding()
             }
             .background(active.background)
-            .navigationTitle("Themes")
+            .navigationTitle(mode == .theme ? "Themes" : "Follow Talents")
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $searchText, prompt: "Search talents")
             .toolbarBackground(active.background, for: .navigationBar)
@@ -56,61 +61,86 @@ struct ThemePickerView: View {
 
     private func themeButton(_ theme: AppTheme, active: ThemeColors) -> some View {
         let colors = theme.colors(for: colorScheme)
-        return Button {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                themeStore.selected = theme
-            }
-        } label: {
-            HStack(spacing: 13) {
-                TalentPortraitView(theme: theme)
-                    .frame(width: 62, height: 62)
+        let isSelected = mode == .theme ? theme == themeStore.selected : themeStore.isFavorite(theme)
+        return HStack(spacing: 2) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    if mode == .theme { themeStore.selected = theme }
+                    else { themeStore.toggleFavorite(theme) }
+                }
+            } label: {
+                HStack(spacing: 13) {
+                    TalentPortraitView(theme: theme)
+                        .frame(width: 62, height: 62)
+                        .accessibilityHidden(true)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(theme.rawValue)
+                            .font(.headline)
+                            .foregroundStyle(active.primaryText)
+                            .lineLimit(2)
+                        HStack(spacing: 6) {
+                            Text(theme.japaneseName)
+                            if let status = theme.status {
+                                Text(status.label.uppercased())
+                                    .font(.caption2.bold())
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 2)
+                                    .background(active.background, in: Capsule())
+                            }
+                        }
+                        .font(.caption)
+                        .foregroundStyle(active.secondaryText)
+                    }
+
+                    Spacer(minLength: 4)
+
+                    HStack(spacing: -5) {
+                        swatch(colors.accent)
+                        swatch(colors.secondaryAccent)
+                    }
                     .accessibilityHidden(true)
 
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(theme.rawValue)
-                        .font(.headline)
-                        .foregroundStyle(active.primaryText)
-                        .lineLimit(2)
-                    HStack(spacing: 6) {
-                        Text(theme.japaneseName)
-                        if let status = theme.status {
-                            Text(status.label.uppercased())
-                                .font(.caption2.bold())
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 2)
-                                .background(active.background, in: Capsule())
-                        }
-                    }
-                    .font(.caption)
-                    .foregroundStyle(active.secondaryText)
+                    Image(systemName: isSelected ? (mode == .theme ? "checkmark.circle.fill" : "star.fill") : (mode == .theme ? "circle" : "star"))
+                        .foregroundStyle(isSelected ? active.accent : active.secondaryText.opacity(0.45))
+                        .font(.title3)
                 }
-
-                Spacer(minLength: 4)
-
-                HStack(spacing: -5) {
-                    swatch(colors.accent)
-                    swatch(colors.secondaryAccent)
-                }
-                .accessibilityHidden(true)
-
-                Image(systemName: theme == themeStore.selected ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(theme == themeStore.selected ? active.accent : active.secondaryText.opacity(0.45))
-                    .font(.title3)
+                .padding(11)
+                .contentShape(Rectangle())
             }
-            .padding(11)
-            .background(active.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay {
-                if theme == themeStore.selected {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(active.accent.opacity(0.55), lineWidth: 1.5)
-                }
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(theme.rawValue), \(theme.japaneseName)")
+            .accessibilityValue(isSelected ? (mode == .theme ? "Selected" : "Following") : "")
+            .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+
+            if mode == .theme {
+                favoriteButton(theme, active: active)
+                    .padding(.trailing, 6)
             }
-            .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        }
+        .background(active.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay {
+            if isSelected {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(active.accent.opacity(0.55), lineWidth: 1.5)
+            }
+        }
+    }
+
+    private func favoriteButton(_ theme: AppTheme, active: ThemeColors) -> some View {
+        let isFavorite = themeStore.isFavorite(theme)
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) { themeStore.toggleFavorite(theme) }
+        } label: {
+            Image(systemName: isFavorite ? "star.fill" : "star")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(isFavorite ? active.accent : active.secondaryText.opacity(0.6))
+                .frame(width: 36, height: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(theme.rawValue), \(theme.japaneseName)")
-        .accessibilityValue(theme == themeStore.selected ? "Selected" : "")
-        .accessibilityAddTraits(theme == themeStore.selected ? [.isSelected] : [])
+        .sensoryFeedback(.selection, trigger: isFavorite)
+        .accessibilityLabel(isFavorite ? "Unfollow \(theme.rawValue)" : "Follow \(theme.rawValue)")
     }
 
     private func swatch(_ color: Color) -> some View {
@@ -128,7 +158,9 @@ struct SettingsView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     @State private var showingThemes = false
+    @State private var showingFavorites = false
     @State private var showingClearArtworkConfirmation = false
+    @State private var notificationsDenied = false
 
     var body: some View {
         @Bindable var appSettings = appSettings
@@ -142,6 +174,19 @@ struct SettingsView: View {
                             Label("Theme", systemImage: "paintpalette.fill")
                             Spacer()
                             Text(themeStore.selected.rawValue)
+                                .foregroundStyle(colors.secondaryText)
+                            Image(systemName: "chevron.right")
+                                .font(.caption.bold())
+                                .foregroundStyle(colors.secondaryText)
+                        }
+                    }
+                    .foregroundStyle(colors.primaryText)
+
+                    Button { showingFavorites = true } label: {
+                        HStack {
+                            Label("Followed Talents", systemImage: "star.fill")
+                            Spacer()
+                            Text((themeStore.followedOshi.count - 1).formatted())
                                 .foregroundStyle(colors.secondaryText)
                             Image(systemName: "chevron.right")
                                 .font(.caption.bold())
@@ -184,6 +229,24 @@ struct SettingsView: View {
                     Text("Collection")
                 } footer: {
                     Text("Controls whether a long-press quick add saves immediately or asks for quantity and purchase price.")
+                }
+
+                Section {
+                    Toggle(isOn: Binding(
+                        get: { appSettings.newCardAlerts },
+                        set: { enabled in setNewCardAlerts(enabled) }
+                    )) {
+                        Label("New Card Alerts", systemImage: "bell.badge.fill")
+                    }
+                    if notificationsDenied {
+                        Text("Notifications are turned off for holoWish. Allow them in the Settings app to get alerts.")
+                            .font(.caption)
+                            .foregroundStyle(colors.secondaryText)
+                    }
+                } header: {
+                    Text("Notifications")
+                } footer: {
+                    Text("Get notified when the catalog adds cards for \(themeStore.selected.rawValue) or talents you follow. holoWish checks for new cards about twice a day in the background.")
                 }
 
                 Section("Catalog") {
@@ -285,6 +348,7 @@ struct SettingsView: View {
             }
             .tint(colors.accent)
             .sheet(isPresented: $showingThemes) { ThemePickerView() }
+            .sheet(isPresented: $showingFavorites) { ThemePickerView(mode: .favorites) }
             .alert("Clear downloaded artwork?", isPresented: $showingClearArtworkConfirmation) {
                 Button("Cancel", role: .cancel) {}
                 Button("Clear Artwork", role: .destructive) {
@@ -300,6 +364,19 @@ struct SettingsView: View {
         .background(colors.background)
         .presentationBackground(colors.background)
         .preferredColorScheme(appSettings.appearance.colorScheme)
+    }
+
+    private func setNewCardAlerts(_ enabled: Bool) {
+        guard enabled else {
+            appSettings.newCardAlerts = false
+            NewCardNotifier.shared.cancelBackgroundRefresh()
+            return
+        }
+        Task {
+            let granted = await NewCardNotifier.shared.requestAuthorization()
+            appSettings.newCardAlerts = granted
+            notificationsDenied = !granted
+        }
     }
 
     private var catalogSyncDescription: String {

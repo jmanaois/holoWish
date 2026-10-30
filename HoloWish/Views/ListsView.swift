@@ -94,10 +94,28 @@ struct ListDetailView: View {
         .background(colors.background)
         .tint(colors.accent)
         .navigationTitle(titleOverride ?? list.name)
+        .toolbar {
+            if !visibleItems.isEmpty {
+                ToolbarItem(placement: .topBarTrailing) {
+                    SharePosterButton { listPoster }
+                }
+            }
+        }
         .task { ensureValueHistory() }
         .sheet(item: $purchaseCard) { card in
             if let collection { PurchaseEditorView(card: card, list: collection) }
         }
+    }
+
+    private var listPoster: SharePosterContent {
+        let cards = visibleItems.map(\.1)
+        let quantity = visibleItems.reduce(0) { $0 + $1.0.quantity }
+        return SharePosterContent(
+            title: list.builtInKind == .wishlist ? "My Wishlist" : "My Collection",
+            subtitle: list.builtInKind == .wishlist ? "\(cards.count) cards wanted" : "\(quantity) cards collected",
+            theme: themeStore.selected,
+            cards: cards
+        )
     }
 
     private var emptyTitle: String {

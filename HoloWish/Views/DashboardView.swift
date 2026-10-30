@@ -11,6 +11,7 @@ struct DashboardView: View {
     @Query(sort: \CollectionValueSnapshot.recordedAt) private var allValueSnapshots: [CollectionValueSnapshot]
     @State private var showingSettings = false
     @State private var showcaseTheme: AppTheme?
+    @State private var showingFavoritePicker = false
 
     private var wishlist: CardList? { lists.first { $0.builtInKind == .wishlist } }
     private var collection: CardList? { lists.first { $0.builtInKind == .collection } }
@@ -69,6 +70,12 @@ struct DashboardView: View {
                         artworkCount: TalentArtworkCatalog.record(for: themeStore.selected)?.artworkURLs.count ?? 0,
                         showNextArtwork: { appSettings.cycleHomeArtwork(for: themeStore.selected) },
                         showShowcase: { showcaseTheme = themeStore.selected }
+                    )
+
+                    FollowedOshiRow(
+                        collectedIDs: Set(collection?.items.map(\.cardID) ?? []),
+                        showShowcase: { showcaseTheme = $0 },
+                        addFavorites: { showingFavoritePicker = true }
                     )
 
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
@@ -138,6 +145,7 @@ struct DashboardView: View {
             }
             .sheet(isPresented: $showingSettings) { SettingsView() }
             .sheet(item: $showcaseTheme) { TalentShowcaseView(theme: $0) }
+            .sheet(isPresented: $showingFavoritePicker) { ThemePickerView(mode: .favorites) }
             .tint(colors.accent)
         }
     }
@@ -250,6 +258,79 @@ private struct TalentSpotlightHero: View {
                 await artworkStore.load(url)
             }
         }
+    }
+}
+
+private struct FollowedOshiRow: View {
+    let collectedIDs: Set<Int>
+    let showShowcase: (AppTheme) -> Void
+    let addFavorites: () -> Void
+    @Environment(CardCatalog.self) private var catalog
+    @Environment(ThemeStore.self) private var themeStore
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        let colors = themeStore.colors(for: colorScheme)
+        let favorites = themeStore.favorites.filter { $0 != themeStore.selected }
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center) {
+                DashboardSectionTitle(title: "My Oshi", subtitle: "Talents you follow", icon: "star.fill")
+                Spacer()
+                Button(favorites.isEmpty ? "Add" : "Edit", action: addFavorites)
+                    .font(.caption.bold())
+            }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: 14) {
+                    ForEach(favorites) { theme in
+                        Button { showShowcase(theme) } label: { tile(theme, colors: colors) }
+                            .buttonStyle(CardPressButtonStyle())
+                    }
+                    Button(action: addFavorites) {
+                        VStack(spacing: 6) {
+                            Image(systemName: "plus")
+                                .font(.title2.weight(.semibold))
+                                .foregroundStyle(colors.accent)
+                                .frame(width: 72, height: 72)
+                                .background(colors.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .strokeBorder(colors.accent.opacity(0.35), style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+                                }
+                            Text(favorites.isEmpty ? "Follow more" : "Add")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(colors.secondaryText)
+                        }
+                        .frame(width: 80)
+                    }
+                    .buttonStyle(CardPressButtonStyle())
+                    .accessibilityLabel("Follow more talents")
+                }
+                .padding(.horizontal, 2)
+            }
+        }
+    }
+
+    private func tile(_ theme: AppTheme, colors: ThemeColors) -> some View {
+        let cards = catalog.cards.filter { $0.belongs(to: theme) }
+        let owned = cards.filter { collectedIDs.contains($0.id) }.count
+        return VStack(spacing: 6) {
+            TalentPortraitView(theme: theme, cornerRadius: 18)
+                .frame(width: 72, height: 72)
+                .background(theme.colors(for: colorScheme).surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .accessibilityHidden(true)
+            Text(theme.rawValue)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(colors.primaryText)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+            Text(cards.isEmpty ? "No cards yet" : "\(owned)/\(cards.count)")
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(colors.secondaryText)
+        }
+        .frame(width: 80)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(theme.rawValue), \(cards.isEmpty ? "no cards yet" : "\(owned) of \(cards.count) collected")")
+        .accessibilityAddTraits(.isButton)
     }
 }
 

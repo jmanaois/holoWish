@@ -61,9 +61,10 @@ struct CardFilters: Equatable {
     var bloomLevel = ""
     var set = ""
     var parallelsOnly = false
+    var talent: AppTheme?
 
     var isActive: Bool {
-        !rarity.isEmpty || !type.isEmpty || !color.isEmpty || !bloomLevel.isEmpty || !set.isEmpty || parallelsOnly
+        !rarity.isEmpty || !type.isEmpty || !color.isEmpty || !bloomLevel.isEmpty || !set.isEmpty || parallelsOnly || talent != nil
     }
 
     mutating func clear() { self = CardFilters() }

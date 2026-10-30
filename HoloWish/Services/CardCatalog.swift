@@ -23,6 +23,8 @@ final class CardCatalog {
     private(set) var isCheckingForUpdates = false
     private(set) var errorMessage: String?
     private(set) var updateMessage: String?
+    /// Called with cards that a catalog update added since the previous catalog.
+    @ObservationIgnored var onCardsAdded: (@MainActor ([Card]) -> Void)?
 
     func start() async {
         await load()
@@ -90,8 +92,13 @@ final class CardCatalog {
             }
 
             let previousCount = cards.count
+            let previousIDs = Set(cards.map(\.id))
             try await Self.saveCatalog(data, to: localCatalogURL)
             await apply(payload)
+            if !previousIDs.isEmpty {
+                let addedCards = cards.filter { !previousIDs.contains($0.id) }
+                if !addedCards.isEmpty { onCardsAdded?(addedCards) }
+            }
             if let eTag = http.value(forHTTPHeaderField: "ETag") { defaults.set(eTag, forKey: Self.eTagKey) }
             let added = max(0, payload.cards.count - previousCount)
             updateMessage = added > 0 ? "Catalog updated with \(added) new cards." : "Catalog updated."

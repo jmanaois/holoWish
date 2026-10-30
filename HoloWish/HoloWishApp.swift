@@ -24,28 +24,37 @@ struct HoloWishApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environment(catalog)
-                .environment(artwork)
-                .environment(talentArtwork)
-                .environment(prices)
-                .environment(themeStore)
-                .environment(appSettings)
-                .preferredColorScheme(appSettings.appearance.colorScheme)
-                .task {
-                    talentArtwork.beginDownloading()
-                    await catalog.start()
-                    artwork.beginDownloading(catalog.cards)
+            Group {
+                if themeStore.hasChosenOshi {
+                    ContentView()
+                        .transition(.opacity)
+                } else {
+                    OshiSetupView()
+                        .transition(.opacity)
                 }
-                .onChange(of: scenePhase) { _, phase in
-                    if phase == .active {
-                        talentArtwork.beginDownloading()
-                        Task {
-                            await catalog.checkForUpdates()
-                            artwork.beginDownloading(catalog.cards)
-                        }
+            }
+            .animation(.easeInOut(duration: 0.4), value: themeStore.hasChosenOshi)
+            .environment(catalog)
+            .environment(artwork)
+            .environment(talentArtwork)
+            .environment(prices)
+            .environment(themeStore)
+            .environment(appSettings)
+            .preferredColorScheme(appSettings.appearance.colorScheme)
+            .task {
+                talentArtwork.beginDownloading()
+                await catalog.start()
+                artwork.beginDownloading(catalog.cards)
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active {
+                    talentArtwork.beginDownloading()
+                    Task {
+                        await catalog.checkForUpdates()
+                        artwork.beginDownloading(catalog.cards)
                     }
                 }
+            }
         }
         .modelContainer(modelContainer)
     }

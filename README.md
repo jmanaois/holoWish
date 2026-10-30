@@ -30,7 +30,7 @@ The catalog sync also cross-references the official English card list by card nu
 ## Current MVP
 
 - Dashboard-first navigation with large shortcuts to Wishlist and Collection, plus a Search tab
-- Searchable portrait themes for all 83 entries in the current official hololive talent directory, grouped by branch and including affiliates, alumni, and staff. Each portrait-derived palette adapts to light and dark appearance; Bijou remains the default.
+- Searchable portrait themes for all 83 entries in the current official hololive talent directory, grouped by branch and including affiliates, alumni, and staff. Each portrait-derived palette adapts to light and dark appearance. On first launch, a setup screen asks the user to pick their oshi, which becomes the starting theme.
 - Talent spotlights, full-body artwork showcases, and per-talent card progress bring official character art throughout the app.
 - Browse compact set tiles using official Japanese product/booster artwork, with Japanese or English names and live collection completion progress
 - Search within any set, sort in either direction by card number, name, rarity, type, or color, and filter using only values available in that set

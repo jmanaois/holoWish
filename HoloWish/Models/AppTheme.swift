@@ -33,7 +33,6 @@ struct AppTheme: RawRepresentable, CaseIterable, Hashable, Identifiable {
     func hash(into hasher: inout Hasher) { hasher.combine(rawValue) }
 
     static let allCases = TalentThemeDefinition.all.map { AppTheme($0) }
-    static let bijou = AppTheme(rawValue: "Koseki Bijou")!
 
     static func cases(in category: AppThemeCategory, matching query: String) -> [AppTheme] {
         let normalized = query.trimmingCharacters(in: .whitespacesAndNewlines).localizedLowercase
@@ -240,17 +239,35 @@ final class ThemeStore {
     private static let defaultsKey = "appearance.theme"
 
     var selected: AppTheme {
-        didSet { UserDefaults.standard.set(selected.rawValue, forKey: Self.defaultsKey) }
+        didSet { if hasChosenOshi { persist() } }
     }
+    /// False until the user picks an oshi in first-run setup.
+    private(set) var hasChosenOshi: Bool
 
     init() {
-        selected = UserDefaults.standard.string(forKey: Self.defaultsKey)
-            .flatMap(AppTheme.init(rawValue:)) ?? .bijou
-        // Retired themes and first launches use Bijou; persist the resolved choice.
-        UserDefaults.standard.set(selected.rawValue, forKey: Self.defaultsKey)
+        if let stored = UserDefaults.standard.string(forKey: Self.defaultsKey).flatMap(AppTheme.init(rawValue:)) {
+            selected = stored
+            hasChosenOshi = true
+            // Persist the canonical name in case a legacy name was stored.
+            UserDefaults.standard.set(stored.rawValue, forKey: Self.defaultsKey)
+        } else {
+            // First launches and retired themes go through oshi setup; this placeholder is never shown.
+            selected = AppTheme.allCases[0]
+            hasChosenOshi = false
+        }
+    }
+
+    func chooseOshi(_ theme: AppTheme) {
+        selected = theme
+        hasChosenOshi = true
+        persist()
     }
 
     func colors(for scheme: ColorScheme) -> ThemeColors { selected.colors(for: scheme) }
+
+    private func persist() {
+        UserDefaults.standard.set(selected.rawValue, forKey: Self.defaultsKey)
+    }
 }
 
 enum AppAppearance: String, CaseIterable, Identifiable {

@@ -24,6 +24,7 @@
 		A00100000000000000000010 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00100000000000000000010 /* DashboardView.swift */; };
 		A00100000000000000000011 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00100000000000000000011 /* AppTheme.swift */; };
 		A00100000000000000000012 /* ThemePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00100000000000000000012 /* ThemePickerView.swift */; };
+		A0010000000000000000001A /* OshiSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0010000000000000000001A /* OshiSetupView.swift */; };
 		A00100000000000000000013 /* CardPriceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00100000000000000000013 /* CardPriceStore.swift */; };
 		A00100000000000000000015 /* TalentPortraits in Resources */ = {isa = PBXBuildFile; fileRef = B00100000000000000000015 /* TalentPortraits */; };
 		A00100000000000000000016 /* TalentArtwork.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00100000000000000000016 /* TalentArtwork.swift */; };
@@ -51,6 +52,7 @@
 		B00100000000000000000010 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		B00100000000000000000011 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		B00100000000000000000012 /* ThemePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemePickerView.swift; sourceTree = "<group>"; };
+		B0010000000000000000001A /* OshiSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OshiSetupView.swift; sourceTree = "<group>"; };
 		B00100000000000000000013 /* CardPriceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardPriceStore.swift; sourceTree = "<group>"; };
 		B00100000000000000000014 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B00100000000000000000015 /* TalentPortraits */ = {isa = PBXFileReference; lastKnownFileType = folder; path = TalentPortraits; sourceTree = "<group>"; };
@@ -122,6 +124,7 @@
 				B00100000000000000000005 /* ContentView.swift */,
 				B00100000000000000000010 /* DashboardView.swift */,
 				B00100000000000000000012 /* ThemePickerView.swift */,
+				B0010000000000000000001A /* OshiSetupView.swift */,
 				B00100000000000000000006 /* BrowseView.swift */,
 				B0010000000000000000000F /* CachedCardImage.swift */,
 				B00100000000000000000007 /* CardTile.swift */,
@@ -237,6 +240,7 @@
 				A00100000000000000000010 /* DashboardView.swift in Sources */,
 				A00100000000000000000011 /* AppTheme.swift in Sources */,
 				A00100000000000000000012 /* ThemePickerView.swift in Sources */,
+				A0010000000000000000001A /* OshiSetupView.swift in Sources */,
 				A00100000000000000000013 /* CardPriceStore.swift in Sources */,
 				A00100000000000000000016 /* TalentArtwork.swift in Sources */,
 				A00100000000000000000017 /* TalentArtworkStore.swift in Sources */,
